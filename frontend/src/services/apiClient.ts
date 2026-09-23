@@ -3,9 +3,11 @@ import { Platform } from 'react-native';
 
 import { storageService } from './storageService';
 
-let API_HOST = '192.168.1.188';
+const DEFAULT_API_URL = Platform.OS === 'web'
+  ? 'http://localhost:5001/api'
+  : 'http://10.160.50.53:5001/api';
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL || `http://${API_HOST}:5001/api`;
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL || DEFAULT_API_URL;
 
 const getHeaders = async () => {
   const token = await storageService.getItem<string>('terraverify_token', '');

@@ -21,7 +21,7 @@ import { UserRole } from '../../src/types';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login, switchDemoRole } = useAuth();
+  const { login } = useAuth();
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -149,7 +149,7 @@ export default function LoginScreen() {
             />
 
             <View style={styles.registerPromptRow}>
-              <Text style={styles.promptText}>Don't have an account yet? </Text>
+              <Text style={styles.promptText}>Don&apos;t have an account yet? </Text>
               <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
                 <Text style={styles.registerLink}>Create Account</Text>
               </TouchableOpacity>

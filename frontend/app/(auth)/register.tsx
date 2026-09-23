@@ -146,7 +146,7 @@ export default function RegisterScreen() {
           <View style={styles.titleSection}>
             <Text style={styles.title}>Create Account</Text>
             <Text style={styles.subtitle}>
-              Join Cameroon's verified land marketplace and titling network.
+              Join Cameroon&apos;s verified land marketplace and titling network.
             </Text>
           </View>
 
