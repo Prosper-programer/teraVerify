@@ -32,14 +32,22 @@ export const SellerHome: React.FC = () => {
   React.useEffect(() => {
     if (!socket) return;
     
-    const handleUpdate = () => refreshLands();
+    const handleUpdate = (data: any) => {
+      refreshLands();
+      if (data && data.status === 'verified' && data.sellerId === currentUser?.id) {
+        Alert.alert(
+          'Verification Complete! 🎉',
+          'Your land has been verified successfully and is now published on the Explorer for buyers to see.'
+        );
+      }
+    };
     
     socket.on('verification_updated', handleUpdate);
 
     return () => {
       socket.off('verification_updated', handleUpdate);
     };
-  }, [socket, refreshLands]);
+  }, [socket, refreshLands, currentUser?.id]);
 
   // Metrics calculation
   const totalListings = sellerListings.length;
@@ -191,34 +199,6 @@ export const SellerHome: React.FC = () => {
               </View>
             </View>
 
-            {/* 48h Cadastral Tracking Prompt or Details */}
-            {isPending && (
-              <View style={styles.pendingBar}>
-                <Ionicons name="time-outline" size={14} color={COLORS.warning} />
-                <Text style={styles.pendingBarText}>
-                  {t('seller.pendingBar')}
-                </Text>
-                <Ionicons name="chevron-forward" size={14} color={COLORS.warning} />
-              </View>
-            )}
-
-            {isRejected && (
-              <View style={styles.rejectedBar}>
-                <Ionicons name="alert-circle-outline" size={14} color={COLORS.error} />
-                <Text style={styles.rejectedBarText} numberOfLines={1}>
-                  {t('seller.rejectedReason')}{listing.rejectionReason || 'Boundary overlap noted'}
-                </Text>
-              </View>
-            )}
-
-            {isVerified && (
-              <View style={styles.verifiedBar}>
-                <Ionicons name="checkmark-circle-outline" size={14} color={COLORS.success} />
-                <Text style={styles.verifiedBarText}>
-                  {t('seller.verifiedBar')}
-                </Text>
-              </View>
-            )}
           </TouchableOpacity>
         );
       })}

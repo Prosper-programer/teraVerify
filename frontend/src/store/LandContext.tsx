@@ -57,9 +57,29 @@ export function LandProvider({ children }: { children: ReactNode }) {
     }
   }, [filters]);
 
+  const { socket } = require('./SocketContext').useSocket();
+
   useEffect(() => {
     loadLands();
   }, [loadLands]);
+
+  useEffect(() => {
+    if (!socket) return;
+    
+    const handleLandUpdate = () => {
+      loadLands();
+    };
+
+    socket.on('verification_updated', handleLandUpdate);
+    socket.on('land_created', handleLandUpdate);
+    socket.on('land_updated', handleLandUpdate);
+
+    return () => {
+      socket.off('verification_updated', handleLandUpdate);
+      socket.off('land_created', handleLandUpdate);
+      socket.off('land_updated', handleLandUpdate);
+    };
+  }, [socket, loadLands]);
 
   const getLandById = async (id: string): Promise<LandListing | null> => {
     return landService.getLandById(id);
