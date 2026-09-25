@@ -16,6 +16,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { COLORS, SPACING, RADIUS, TYPOGRAPHY, SHADOWS } from '../../src/constants/theme';
 import { useLand } from '../../src/store/LandContext';
+import { useAuth } from '../../src/store/AuthContext';
 import { Header } from '../../src/components/common/Header';
 import { Input } from '../../src/components/common/Input';
 import { Button } from '../../src/components/common/Button';
@@ -28,6 +29,30 @@ export default function SubmitLandScreen() {
 
   const [step, setStep] = useState<number>(1);
   const [loading, setLoading] = useState(false);
+  const { currentUser, logout } = useAuth();
+
+  React.useEffect(() => {
+    if (currentUser && currentUser.role !== 'seller' && currentUser.role !== 'admin') {
+      Alert.alert(
+        'Seller Account Required',
+        'You must be logged in as a registered Seller to access the Land Submission portal.',
+        [
+          {
+            text: 'Switch Account / Login',
+            onPress: async () => {
+              if (logout) await logout();
+              router.replace('/(auth)/welcome');
+            },
+          },
+          { 
+            text: 'Go Back', 
+            style: 'cancel',
+            onPress: () => router.back()
+          }
+        ]
+      );
+    }
+  }, [currentUser]);
 
   // Form State
   // Step 1: Land Information
@@ -96,6 +121,25 @@ export default function SubmitLandScreen() {
   };
 
   const handleSubmit = async () => {
+    // Intercept based on user role
+    if (currentUser?.role !== 'seller' && currentUser?.role !== 'admin') {
+      Alert.alert(
+        'Seller Account Required',
+        'You must be logged in as a registered Seller to submit a land title for verification.',
+        [
+          {
+            text: 'Switch Account / Login',
+            onPress: async () => {
+              if (logout) await logout();
+              router.replace('/(auth)/welcome');
+            },
+          },
+          { text: 'Cancel', style: 'cancel' }
+        ]
+      );
+      return;
+    }
+
     try {
       setLoading(true);
       const res = await submitNewLand({

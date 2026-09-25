@@ -1,6 +1,8 @@
 // Authentication & Role Verification Middleware
 const { pool } = require('../config/db');
 const jwt = require('jsonwebtoken');
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, "../../.env") });
 
 const JWT_SECRET = process.env.JWT_SECRET || 'teraverify_super_secret_jwt_key_2026';
 

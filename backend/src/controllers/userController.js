@@ -12,6 +12,7 @@ async function getAllUsers(req, res) {
       role: u.role,
       avatarUrl: u.avatar_url,
       isPhoneVerified: !!u.is_phone_verified,
+      isSubscribed: !!u.is_subscribed,
       nationalIdNumber: u.national_id_number,
       status: u.status,
       registeredAt: u.registered_at,
@@ -53,8 +54,23 @@ async function changeUserRole(req, res) {
   }
 }
 
+// PUT /api/users/:id/subscribe
+async function subscribeUser(req, res) {
+  try {
+    const { id } = req.params;
+    if (req.user.id !== id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    await pool.query('UPDATE users SET is_subscribed = TRUE WHERE id = ?', [id]);
+    res.json({ id, isSubscribed: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
 module.exports = {
   getAllUsers,
   toggleUserStatus,
   changeUserRole,
+  subscribeUser,
 };

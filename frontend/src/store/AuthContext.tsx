@@ -15,13 +15,14 @@ interface AuthContextType {
     phone: string;
     password: string;
     role: UserRole;
+    avatarUrl?: string;
   }) => Promise<void>;
   verifyOtp: (tempUserId: string, otp: string) => Promise<void>;
   logout: () => Promise<void>;
-  switchDemoRole: (newRole: UserRole) => Promise<void>;
   allUsers: User[];
   refreshUsers: () => Promise<void>;
   toggleUserStatus: (userId: string) => Promise<void>;
+  subscribe: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -60,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     phone: string;
     password: string;
     role: UserRole;
+    avatarUrl?: string;
   }) => {
     const res = await authService.register(params);
     setCurrentUser(res.user);
@@ -75,11 +77,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCurrentUser(null);
   };
 
-  const switchDemoRole = async (newRole: UserRole) => {
-    const user = await authService.switchDemoRole(newRole);
-    setCurrentUser(user);
-  };
-
   const refreshUsers = async () => {
     const users = await authService.getAllUsers();
     setAllUsers(users);
@@ -88,6 +85,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const toggleUserStatus = async (userId: string) => {
     await authService.toggleUserStatus(userId);
     await refreshUsers();
+  };
+
+  const subscribe = async () => {
+    if (currentUser) {
+      const updated = await authService.subscribe(currentUser.id);
+      setCurrentUser(updated);
+    }
   };
 
   return (
@@ -101,10 +105,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         verifyOtp,
         logout,
-        switchDemoRole,
         allUsers,
         refreshUsers,
         toggleUserStatus,
+        subscribe,
       }}
     >
       {children}

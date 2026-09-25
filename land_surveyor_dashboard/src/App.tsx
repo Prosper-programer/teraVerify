@@ -5,6 +5,7 @@ import {
   Route,
   Navigate,
   useNavigate,
+  useLocation,
 } from "react-router-dom";
 import axios from "axios";
 import {
@@ -14,6 +15,14 @@ import {
   LogOut,
   FileQuestion,
   ArrowLeft,
+  ShieldCheck,
+  CheckCircle,
+  XCircle,
+  Clock,
+  LayoutDashboard,
+  Building,
+  User,
+  ChevronRight,
 } from "lucide-react";
 
 const API_URL = "http://localhost:5001/api";
@@ -48,6 +57,19 @@ type Land = {
   documents: any[];
 };
 
+const formatDate = (dateString?: string) => {
+  if (!dateString) return "N/A";
+  try {
+    return new Intl.DateTimeFormat("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }).format(new Date(dateString));
+  } catch (e) {
+    return dateString;
+  }
+};
+
 function Login() {
   const [email, setEmail] = useState("s.ewane@ordre-geometres-cm.org");
   const [password, setPassword] = useState("admin123");
@@ -73,62 +95,152 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F4F7FB] font-sans">
-      <form
-        onSubmit={handleLogin}
-        className="bg-white p-10 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] w-100"
-      >
-        <div className="flex justify-center mb-6">
-          <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600">
-            <MapPin size={32} strokeWidth={2.5} />
+    <div className="min-h-screen flex bg-slate-50 font-sans">
+      {/* Left side branding */}
+      <div className="hidden lg:flex w-1/2 bg-slate-900 text-white p-12 flex-col justify-between relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-400 via-slate-900 to-slate-900"></div>
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 text-blue-400 mb-8">
+            <ShieldCheck size={32} />
+            <span className="text-xl font-bold tracking-wider text-white">TERRAVERIFY</span>
+          </div>
+          <h1 className="text-5xl font-light leading-tight mt-20">
+            Professional <br />
+            <span className="font-semibold text-blue-400">Cadastral Verification</span>
+          </h1>
+          <p className="text-slate-400 mt-6 max-w-md text-lg">
+            Secure, efficient, and standardized land title validation for certified surveyors.
+          </p>
+        </div>
+        <div className="relative z-10 text-sm text-slate-500">
+          &copy; {new Date().getFullYear()} TerraVerify. All rights reserved.
+        </div>
+      </div>
+
+      {/* Right side form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
+        <div className="w-full max-w-md">
+          <div className="lg:hidden flex items-center gap-2 mb-8 justify-center text-slate-900">
+            <ShieldCheck size={28} className="text-blue-600" />
+            <span className="text-xl font-bold tracking-wider">TERRAVERIFY</span>
+          </div>
+
+          <div className="bg-white p-10 rounded-2xl shadow-xl shadow-slate-200/40 border border-slate-100">
+            <h2 className="text-2xl font-semibold text-slate-900 mb-2">Surveyor Portal</h2>
+            <p className="text-slate-500 text-sm mb-8">Sign in with your official credentials</p>
+
+            {error && (
+              <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6 text-sm border border-red-100 flex items-center gap-2">
+                <XCircle size={16} />
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleLogin} className="space-y-5">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Email Address
+                </label>
+                <input
+                  className="w-full bg-white border border-slate-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-slate-900"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Password
+                </label>
+                <input
+                  className="w-full bg-white border border-slate-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-slate-900"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg font-medium transition-colors shadow-sm"
+                >
+                  Sign In to Dashboard
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-        <h2 className="text-2xl font-bold text-center text-slate-800 mb-2">
-          Surveyor Portal
-        </h2>
-        <p className="text-center text-slate-500 text-sm mb-8">
-          Sign in to the TerraVerify verification network
-        </p>
-
-        {error && (
-          <div className="bg-red-50 text-red-600 p-4 rounded-xl mb-6 text-sm font-medium text-center">
-            {error}
-          </div>
-        )}
-
-        <div className="space-y-4 mb-8">
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 ml-1">
-              Email Address
-            </label>
-            <input
-              className="w-full bg-slate-50 border-0 p-4 rounded-xl focus:ring-2 focus:ring-amber-100 outline-none transition-all"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 ml-1">
-              Password
-            </label>
-            <input
-              className="w-full bg-slate-50 border-0 p-4 rounded-xl focus:ring-2 focus:ring-amber-100 outline-none transition-all"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <button
-          type="submit"
-          className="w-full bg-amber-600 hover:bg-amber-700 text-white p-4 rounded-xl font-semibold transition-colors shadow-sm shadow-amber-200"
-        >
-          Sign In
-        </button>
-      </form>
+      </div>
     </div>
+  );
+}
+
+// Sidebar Component
+function Sidebar() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleLogout = () => {
+    localStorage.removeItem("surveyor_token");
+    navigate("/login");
+  };
+
+  return (
+    <div className="w-64 bg-slate-900 text-white flex flex-col min-h-screen">
+      <div className="p-6 flex items-center gap-3 border-b border-slate-800">
+        <ShieldCheck size={28} className="text-blue-400" />
+        <span className="text-lg font-bold tracking-wider">TERRAVERIFY</span>
+      </div>
+      
+      <nav className="flex-1 py-6 px-4 space-y-2">
+        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 px-3">
+          Menu
+        </div>
+        <button
+          onClick={() => navigate("/dashboard")}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+            location.pathname === "/dashboard"
+              ? "bg-blue-600 text-white"
+              : "text-slate-400 hover:bg-slate-800 hover:text-white"
+          }`}
+        >
+          <LayoutDashboard size={18} />
+          <span className="font-medium text-sm">Dashboard</span>
+        </button>
+      </nav>
+
+      <div className="p-4 border-t border-slate-800">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+        >
+          <LogOut size={18} />
+          <span className="font-medium text-sm">Sign Out</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Topbar Component
+function Topbar() {
+  const surveyorName = localStorage.getItem("surveyor_name") || "Surveyor";
+  return (
+    <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-8 sticky top-0 z-10">
+      <h1 className="text-lg font-semibold text-slate-800">Surveyor Portal</h1>
+      <div className="flex items-center gap-3">
+        <div className="text-right hidden sm:block">
+          <p className="text-sm font-medium text-slate-900">{surveyorName}</p>
+          <p className="text-xs text-slate-500">Certified Land Surveyor</p>
+        </div>
+        <div className="w-9 h-9 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold">
+          {surveyorName.charAt(0)}
+        </div>
+      </div>
+    </header>
   );
 }
 
@@ -136,10 +248,7 @@ function Dashboard() {
   const navigate = useNavigate();
   const [requests, setRequests] = useState<Request[]>([]);
   const [search, setSearch] = useState("");
-  const [activeTab, setActiveTab] = useState<"pending" | "completed">(
-    "pending",
-  );
-  const surveyorName = localStorage.getItem("surveyor_name");
+  const [activeTab, setActiveTab] = useState<"pending" | "completed">("pending");
 
   useEffect(() => {
     fetchData();
@@ -157,11 +266,6 @@ function Dashboard() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("surveyor_token");
-    navigate("/login");
-  };
-
   const filteredRequests = requests.filter((r) => {
     const isPending = ["submitted", "under_review"].includes(r.status);
     if (activeTab === "pending" && !isPending) return false;
@@ -172,156 +276,169 @@ function Dashboard() {
     );
   });
 
+  const pendingCount = requests.filter((r) => ["submitted", "under_review"].includes(r.status)).length;
+  const completedCount = requests.filter((r) => ["approved", "rejected"].includes(r.status)).length;
+
   return (
-    <div className="flex flex-col min-h-screen bg-[#F8FAFC] font-sans">
-      <header className="bg-white border-b border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.01)] px-10 py-6 flex justify-between items-center z-10">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-linear-to-tr from-amber-500 to-orange-400 rounded-xl flex items-center justify-center text-white shadow-sm shadow-amber-200">
-            <MapPin size={24} strokeWidth={2.5} />
-          </div>
-          <div>
-            <h1 className="font-bold text-xl tracking-tight text-slate-800">
-              TerraVerify Cadastral Verification
-            </h1>
-            <p className="text-slate-500 text-sm">Certified Surveyor Portal</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-6">
-          <p className="text-slate-600 font-medium">
-            Hello, {surveyorName?.split(" ")[0]}
-          </p>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl font-medium transition-colors"
-          >
-            <LogOut size={18} /> Sign Out
-          </button>
-        </div>
-      </header>
-
-      <main className="flex-1 max-w-6xl w-full mx-auto p-10">
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex bg-slate-100 p-1 rounded-xl">
-            <button
-              onClick={() => setActiveTab("pending")}
-              className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === "pending" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
-            >
-              Pending Tasks (
-              {
-                requests.filter((r) =>
-                  ["submitted", "under_review"].includes(r.status),
-                ).length
-              }
-              )
-            </button>
-            <button
-              onClick={() => setActiveTab("completed")}
-              className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === "completed" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
-            >
-              Completed (
-              {
-                requests.filter((r) =>
-                  ["approved", "rejected"].includes(r.status),
-                ).length
-              }
-              )
-            </button>
-          </div>
-
-          <div className="relative">
-            <Search
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-              size={18}
-            />
-            <input
-              type="text"
-              placeholder="Search by Title Number..."
-              className="pl-11 pr-4 py-3 bg-white shadow-sm border border-slate-100 rounded-xl w-72 text-sm focus:ring-2 focus:ring-amber-100 outline-none transition-all"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {filteredRequests.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-slate-100 p-16 flex flex-col items-center justify-center shadow-sm">
-            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mb-4">
-              <FileQuestion size={40} />
-            </div>
-            <h3 className="text-xl font-bold text-slate-700 mb-2">
-              No Requests Found
-            </h3>
-            <p className="text-slate-500 text-center max-w-md">
-              There are currently no verification requests in this category.
-              Kick back and relax.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredRequests.map((req) => (
-              <div
-                key={req.id}
-                onClick={() => navigate(`/review/${req.id}`)}
-                className="bg-white p-6 rounded-3xl shadow-[0_2px_20px_rgb(0,0,0,0.02)] border border-slate-100 hover:-translate-y-1 hover:shadow-md cursor-pointer transition-all duration-300 group"
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-800 tracking-tight">
-                      {req.landTitleNumber}
-                    </h3>
-                    <p className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
-                      <MapPin size={14} /> {req.subdivision}, {req.region}
-                    </p>
-                  </div>
-                  <span
-                    className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold tracking-wide ${
-                      req.status === "approved"
-                        ? "bg-emerald-50 text-emerald-700"
-                        : req.status === "rejected"
-                          ? "bg-rose-50 text-rose-700"
-                          : "bg-amber-50 text-amber-700"
-                    }`}
-                  >
-                    {req.status === "submitted"
-                      ? "PENDING"
-                      : req.status.replace("_", " ").toUpperCase()}
-                  </span>
-                </div>
-                <div className="flex items-center gap-6 mt-6 pt-6 border-t border-slate-50">
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                      Seller
-                    </p>
-                    <p className="text-sm font-medium text-slate-700">
-                      {req.sellerName}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                      Surface Area
-                    </p>
-                    <p className="text-sm font-medium text-slate-700">
-                      {req.surfaceAreaSqM} m²
-                    </p>
-                  </div>
-                  <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-sm font-bold text-amber-600 flex items-center gap-1">
-                      Review <ChevronRight size={16} />
-                    </span>
-                  </div>
-                </div>
+    <div className="flex min-h-screen bg-slate-50 font-sans">
+      <Sidebar />
+      <div className="flex-1 flex flex-col min-w-0">
+        <Topbar />
+        <main className="flex-1 p-8 overflow-y-auto">
+          {/* Stats Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                <FileText size={24} />
               </div>
-            ))}
+              <div>
+                <p className="text-sm font-medium text-slate-500">Total Assignments</p>
+                <h3 className="text-2xl font-bold text-slate-900">{requests.length}</h3>
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                <Clock size={24} />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-500">Pending Review</p>
+                <h3 className="text-2xl font-bold text-slate-900">{pendingCount}</h3>
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <CheckCircle size={24} />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-500">Completed</p>
+                <h3 className="text-2xl font-bold text-slate-900">{completedCount}</h3>
+              </div>
+            </div>
           </div>
-        )}
-      </main>
+
+          {/* Main Content Area */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="p-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50/50">
+              <div className="flex bg-slate-100 p-1 rounded-lg">
+                <button
+                  onClick={() => setActiveTab("pending")}
+                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    activeTab === "pending"
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Pending ({pendingCount})
+                </button>
+                <button
+                  onClick={() => setActiveTab("completed")}
+                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    activeTab === "completed"
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Completed ({completedCount})
+                </button>
+              </div>
+
+              <div className="relative w-full sm:w-auto">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <input
+                  type="text"
+                  placeholder="Search title or seller..."
+                  className="w-full sm:w-72 pl-9 pr-4 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {filteredRequests.length === 0 ? (
+              <div className="p-16 flex flex-col items-center justify-center text-center">
+                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 mb-4 border border-slate-100">
+                  <FileQuestion size={32} />
+                </div>
+                <h3 className="text-lg font-medium text-slate-900 mb-1">No requests found</h3>
+                <p className="text-slate-500 text-sm max-w-sm">
+                  There are currently no verification requests matching your criteria.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Title Number</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Location</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Seller</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Submitted</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {filteredRequests.map((req) => (
+                      <tr 
+                        key={req.id} 
+                        className="hover:bg-slate-50/80 transition-colors group cursor-pointer"
+                        onClick={() => navigate(`/review/${req.id}`)}
+                      >
+                        <td className="px-6 py-4">
+                          <span className="font-semibold text-slate-900">{req.landTitleNumber}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-1.5 text-sm text-slate-600">
+                            <MapPin size={14} className="text-slate-400" />
+                            <span>{req.subdivision}, {req.region}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-600">
+                              {req.sellerName.charAt(0)}
+                            </div>
+                            <span className="text-sm text-slate-700 font-medium">{req.sellerName}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-600">
+                          {formatDate(req.submittedAt)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${
+                              req.status === "approved"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : req.status === "rejected"
+                                ? "bg-rose-50 text-rose-700 border-rose-200"
+                                : "bg-amber-50 text-amber-700 border-amber-200"
+                            }`}
+                          >
+                            {req.status === "submitted" ? "Pending" : req.status.replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <button className="text-blue-600 font-medium text-sm hover:text-blue-800 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-end gap-1 w-full">
+                            Review <ChevronRight size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
 
 function ReviewScreen() {
   const navigate = useNavigate();
-  const requestId = window.location.pathname.split("/").pop();
+  const location = useLocation();
+  const requestId = location.pathname.split("/").pop();
   const [req, setReq] = useState<Request | null>(null);
   const [land, setLand] = useState<Land | null>(null);
   const [notes, setNotes] = useState("");
@@ -334,16 +451,18 @@ function ReviewScreen() {
 
   const fetchData = async () => {
     try {
-      const [r, l] = await Promise.all([
-        api.get("/verifications"),
-        api.get("/lands"),
-      ]);
+      const r = await api.get("/verifications");
       const foundReq = r.data.find((x: Request) => x.id === requestId);
       setReq(foundReq);
       if (foundReq) {
         setNotes(foundReq.surveyorNotes || "");
-        const foundLand = l.data.find((x: Land) => x.id === foundReq.landId);
-        setLand(foundLand);
+        // Fetch specific land details (since /lands might only return published ones)
+        try {
+          const l = await api.get(`/lands/${foundReq.landId}`);
+          setLand(l.data);
+        } catch (landErr) {
+          console.error("Failed to fetch land details", landErr);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -356,7 +475,7 @@ function ReviewScreen() {
     }
     if (
       !confirm(
-        `Are you sure you want to mark this title as ${status.toUpperCase()}?`,
+        `Are you sure you want to mark this title as ${status.toUpperCase()}?`
       )
     )
       return;
@@ -376,149 +495,185 @@ function ReviewScreen() {
   };
 
   if (!req)
-    return <div className="p-20 text-center">Loading verification data...</div>;
+    return (
+      <div className="flex min-h-screen bg-slate-50">
+        <Sidebar />
+        <div className="flex-1 flex items-center justify-center text-slate-500">
+          Loading verification data...
+        </div>
+      </div>
+    );
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-sans pb-20">
-      <header className="bg-white border-b border-slate-100 px-10 py-4 z-10 sticky top-0 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate("/dashboard")}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <div>
-            <h1 className="font-bold text-xl tracking-tight text-slate-800">
-              Verification Report
-            </h1>
-            <p className="text-slate-500 text-sm">Dossier ID: {req.id}</p>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto mt-10">
-        <div className="bg-white rounded-3xl shadow-[0_4px_30px_rgb(0,0,0,0.03)] border border-slate-100 overflow-hidden">
-          {/* Header Info */}
-          <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-            <div>
-              <p className="text-sm font-bold tracking-wider text-slate-400 uppercase mb-1">
-                Land Title Number
-              </p>
-              <h2 className="text-3xl font-black text-slate-800">
-                {req.landTitleNumber}
-              </h2>
-            </div>
-            <span
-              className={`inline-flex items-center px-4 py-2 rounded-xl text-sm font-bold tracking-wide shadow-sm ${
-                req.status === "approved"
-                  ? "bg-emerald-50 text-emerald-700"
-                  : req.status === "rejected"
-                    ? "bg-rose-50 text-rose-700"
-                    : "bg-amber-50 text-amber-700 border border-amber-100"
-              }`}
+    <div className="flex min-h-screen bg-slate-50 font-sans">
+      <Sidebar />
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Review Header */}
+        <header className="bg-white border-b border-slate-200 px-8 py-4 sticky top-0 z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="w-10 h-10 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
             >
-              {req.status === "submitted"
-                ? "PENDING"
-                : req.status.replace("_", " ").toUpperCase()}
-            </span>
-          </div>
-
-          <div className="p-8 grid grid-cols-2 gap-8">
-            {/* Details Col */}
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                  Location
-                </h3>
-                <p className="font-semibold text-slate-700 text-lg flex items-center gap-2">
-                  <MapPin size={18} className="text-amber-500" /> {req.region}
-                </p>
-                <p className="text-slate-500">
-                  {req.division}, {req.subdivision}
-                </p>
+              <ArrowLeft size={18} />
+            </button>
+            <div>
+              <div className="flex items-center gap-3 mb-1">
+                <h1 className="font-bold text-xl text-slate-900">
+                  {req.landTitleNumber}
+                </h1>
+                <span
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                    req.status === "approved"
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      : req.status === "rejected"
+                      ? "bg-rose-50 text-rose-700 border-rose-200"
+                      : "bg-amber-50 text-amber-700 border-amber-200"
+                  }`}
+                >
+                  {req.status === "submitted" ? "Pending" : req.status.replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
+                </span>
               </div>
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                  Property Description
-                </h3>
-                <p className="text-slate-700 font-medium">
-                  {land?.title || "Loading..."}
-                </p>
-              </div>
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                  Seller Contact
-                </h3>
-                <p className="text-slate-700 font-medium">{req.sellerName}</p>
-                <p className="text-slate-500">{req.sellerPhone}</p>
-              </div>
+              <p className="text-slate-500 text-sm flex items-center gap-2">
+                Dossier ID: <span className="font-mono text-xs">{req.id}</span>
+              </p>
             </div>
-
-            {/* Documents & Action Col */}
-            <div className="space-y-6 bg-slate-50 p-6 rounded-2xl border border-slate-100">
-              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                <FileText size={18} className="text-amber-500" /> Verification
-                Documents
-              </h3>
-              {/* Mock Docs since actual docs are in a separate table */}
-              <div className="space-y-3">
-                <button className="w-full flex items-center justify-between p-4 bg-white rounded-xl border border-slate-200 hover:border-amber-300 transition-colors">
-                  <span className="font-semibold text-slate-700 text-sm">
-                    Titre Foncier (PDF)
-                  </span>
-                  <ChevronRight size={16} className="text-slate-400" />
+          </div>
+          {req.status === "submitted" || req.status === "under_review" ? (
+             <div className="flex items-center gap-3">
+                <button
+                  disabled={submitting}
+                  onClick={() => handleAction("rejected")}
+                  className="px-5 py-2.5 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+                >
+                  Reject
                 </button>
-                <button className="w-full flex items-center justify-between p-4 bg-white rounded-xl border border-slate-200 hover:border-amber-300 transition-colors">
-                  <span className="font-semibold text-slate-700 text-sm">
-                    Plan de Bornage (PDF)
-                  </span>
-                  <ChevronRight size={16} className="text-slate-400" />
+                <button
+                  disabled={submitting}
+                  onClick={() => handleAction("approved")}
+                  className="px-5 py-2.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg text-sm font-semibold transition-colors shadow-sm disabled:opacity-50"
+                >
+                  Approve Title
                 </button>
-              </div>
+             </div>
+          ) : null}
+        </header>
 
-              {req.status === "submitted" || req.status === "under_review" ? (
-                <div className="mt-8 pt-6 border-t border-slate-200">
-                  <h3 className="text-sm font-bold text-slate-800 mb-3">
-                    Official Surveyor Notes
-                  </h3>
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Enter your field findings, coordinate cross-checks, and boundary observations..."
-                    className="w-full h-32 p-4 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-200 resize-none mb-4"
-                  />
-                  <div className="flex gap-3">
-                    <button
-                      disabled={submitting}
-                      onClick={() => handleAction("rejected")}
-                      className="flex-1 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 p-3 rounded-xl font-bold transition-colors"
-                    >
-                      Reject Title
-                    </button>
-                    <button
-                      disabled={submitting}
-                      onClick={() => handleAction("approved")}
-                      className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700 p-3 rounded-xl font-bold transition-colors shadow-sm shadow-emerald-200"
-                    >
-                      Approve Title
-                    </button>
+        <main className="flex-1 p-8 overflow-y-auto">
+          <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            {/* Left Column: Details */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Property Information Card */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                <h2 className="text-lg font-semibold text-slate-900 mb-6 flex items-center gap-2">
+                  <Building size={20} className="text-blue-600" /> Property Information
+                </h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div>
+                    <p className="text-sm text-slate-500 mb-1">Title Number</p>
+                    <p className="font-medium text-slate-900">{req.landTitleNumber}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500 mb-1">Surface Area</p>
+                    <p className="font-medium text-slate-900">{req.surfaceAreaSqM} m²</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500 mb-1">Region</p>
+                    <p className="font-medium text-slate-900">{req.region}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500 mb-1">Division / Subdivision</p>
+                    <p className="font-medium text-slate-900">{req.division}, {req.subdivision}</p>
+                  </div>
+                  <div className="md:col-span-2 pt-4 border-t border-slate-100">
+                    <p className="text-sm text-slate-500 mb-2">Detailed Description</p>
+                    <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-lg border border-slate-100">
+                      {land?.description || land?.title || "No extended description provided for this land parcel."}
+                    </p>
                   </div>
                 </div>
-              ) : (
-                <div className="mt-8 pt-6 border-t border-slate-200">
-                  <h3 className="text-sm font-bold text-slate-800 mb-2">
-                    Final Surveyor Notes
-                  </h3>
-                  <p className="text-sm text-slate-600 bg-white p-4 rounded-xl border border-slate-200">
-                    {req.surveyorNotes || "No notes provided."}
-                  </p>
-                </div>
-              )}
+              </div>
+
+              {/* Action/Notes Card */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                 <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                  <FileText size={20} className="text-blue-600" /> Surveyor Field Notes
+                </h2>
+                {req.status === "submitted" || req.status === "under_review" ? (
+                  <div>
+                    <p className="text-sm text-slate-600 mb-4">
+                      Record your official findings, coordinate cross-checks, and boundary observations. These notes will be attached to the final verification report.
+                    </p>
+                    <textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Enter field notes here..."
+                      className="w-full h-40 p-4 bg-white border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none transition-shadow"
+                    />
+                  </div>
+                ) : (
+                  <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-sm text-slate-700 whitespace-pre-wrap min-h-[100px]">
+                    {req.surveyorNotes || "No notes were provided during the verification process."}
+                  </div>
+                )}
+              </div>
             </div>
+
+            {/* Right Column: Meta & Docs */}
+            <div className="space-y-6">
+              {/* Seller Info */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                <h2 className="text-base font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                  <User size={18} className="text-slate-400" /> Applicant / Seller
+                </h2>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Name</p>
+                    <p className="font-medium text-slate-900">{req.sellerName}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Contact</p>
+                    <p className="font-medium text-slate-900">{req.sellerPhone}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Submission Date</p>
+                    <p className="font-medium text-slate-900">{formatDate(req.submittedAt)}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Documents */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                <h2 className="text-base font-semibold text-slate-900 mb-4">Official Documents</h2>
+                <div className="space-y-3">
+                  {land?.documents && land.documents.length > 0 ? (
+                    land.documents.map((doc: any) => (
+                      <a 
+                        key={doc.id}
+                        href={doc.fileUrl ? `http://localhost:5001${doc.fileUrl}` : '#'}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-full flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition-colors group"
+                      >
+                        <div className="flex items-center gap-3 text-sm font-medium text-slate-700 group-hover:text-blue-700 capitalize">
+                          <FileText size={16} className="text-slate-400 group-hover:text-blue-500" />
+                          {doc.name || (doc.type ? doc.type.replace('_', ' ') : 'Document')}
+                        </div>
+                        <ChevronRight size={16} className="text-slate-400" />
+                      </a>
+                    ))
+                  ) : (
+                    <p className="text-sm text-slate-500 italic">No documents attached.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
@@ -535,23 +690,5 @@ function App() {
     </BrowserRouter>
   );
 }
-
-// Simple ChevronRight icon component missing in lucide import
-const ChevronRight = ({ size = 24, className = "" }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <polyline points="9 18 15 12 9 6"></polyline>
-  </svg>
-);
 
 export default App;

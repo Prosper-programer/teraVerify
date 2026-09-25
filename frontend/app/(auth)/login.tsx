@@ -1,6 +1,6 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView } from "react-native-safe-area-context";
 // Login Screen
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -10,33 +10,36 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, RADIUS, TYPOGRAPHY } from '../../src/constants/theme';
-import { Input } from '../../src/components/common/Input';
-import { Button } from '../../src/components/common/Button';
-import { useAuth } from '../../src/store/AuthContext';
-import { UserRole } from '../../src/types';
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { COLORS, SPACING, RADIUS, TYPOGRAPHY } from "../../src/constants/theme";
+import { Input } from "../../src/components/common/Input";
+import { Button } from "../../src/components/common/Button";
+import { useAuth } from "../../src/store/AuthContext";
+import { UserRole } from "../../src/types";
 
 export default function LoginScreen() {
   const router = useRouter();
   const { login } = useAuth();
 
-  const [identifier, setIdentifier] = useState('');
-  const [password, setPassword] = useState('');
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ identifier?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{
+    identifier?: string;
+    password?: string;
+  }>({});
 
   const validate = () => {
     const errs: { identifier?: string; password?: string } = {};
     if (!identifier.trim()) {
-      errs.identifier = 'Please enter your phone number or email address.';
+      errs.identifier = "Please enter your phone number or email address.";
     }
     if (!password.trim()) {
-      errs.password = 'Please enter your password.';
+      errs.password = "Please enter your password.";
     } else if (password.length < 6) {
-      errs.password = 'Password must be at least 6 characters.';
+      errs.password = "Password must be at least 6 characters.";
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -48,35 +51,20 @@ export default function LoginScreen() {
     try {
       setLoading(true);
       await login(identifier, password);
-      router.replace('/(tabs)');
+      router.replace("/(tabs)");
     } catch (err: any) {
-      Alert.alert('Login Failed', err.message || 'Invalid credentials.');
+      Alert.alert("Login Failed", err.message || "Invalid credentials.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Quick-fill helper for defense presentation with real database credentials
-  const handleDemoFill = (role: UserRole) => {
-    const presets: Record<string, { id: string; pass: string }> = {
-      admin: { id: 'admin@terraverify.cm', pass: 'admin123' },
-      buyer: { id: 'prosper.kamga@gmail.com', pass: 'admin123' },
-      seller: { id: 'paul.njoya@terracam.com', pass: 'admin123' },
-      surveyor: { id: 's.ewane@ordre-geometres-cm.org', pass: 'admin123' },
-      advisor: { id: 'c.manga@etude-fonciere.cm', pass: 'admin123' },
-    };
-    const preset = presets[role];
-    if (preset) {
-      setIdentifier(preset.id);
-      setPassword(preset.pass);
-      setErrors({});
-    }
-  };
+
 
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
         <ScrollView
@@ -88,7 +76,7 @@ export default function LoginScreen() {
             style={styles.backBtn}
             onPress={() => {
               if (router.canGoBack()) router.back();
-              else router.replace('/(tabs)');
+              else router.replace("/(tabs)");
             }}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
@@ -98,7 +86,8 @@ export default function LoginScreen() {
           <View style={styles.titleSection}>
             <Text style={styles.title}>Welcome Back</Text>
             <Text style={styles.subtitle}>
-              Sign in to manage land titles, verifications, and property inquiries.
+              Sign in to manage land titles, verifications, and property
+              inquiries.
             </Text>
           </View>
 
@@ -110,12 +99,19 @@ export default function LoginScreen() {
               value={identifier}
               onChangeText={(t) => {
                 setIdentifier(t);
-                if (errors.identifier) setErrors({ ...errors, identifier: undefined });
+                if (errors.identifier)
+                  setErrors({ ...errors, identifier: undefined });
               }}
               error={errors.identifier}
               autoCapitalize="none"
               keyboardType="email-address"
-              leftIcon={<Ionicons name="person-outline" size={20} color={COLORS.textMuted} />}
+              leftIcon={
+                <Ionicons
+                  name="person-outline"
+                  size={20}
+                  color={COLORS.textMuted}
+                />
+              }
             />
 
             <Input
@@ -124,16 +120,28 @@ export default function LoginScreen() {
               value={password}
               onChangeText={(t) => {
                 setPassword(t);
-                if (errors.password) setErrors({ ...errors, password: undefined });
+                if (errors.password)
+                  setErrors({ ...errors, password: undefined });
               }}
               error={errors.password}
               isPassword
-              leftIcon={<Ionicons name="lock-closed-outline" size={20} color={COLORS.textMuted} />}
+              leftIcon={
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={20}
+                  color={COLORS.textMuted}
+                />
+              }
             />
 
             <TouchableOpacity
               style={styles.forgotBtn}
-              onPress={() => Alert.alert('Password Recovery', 'A recovery link has been sent to your registered phone or email.')}
+              onPress={() =>
+                Alert.alert(
+                  "Password Recovery",
+                  "A recovery link has been sent to your registered phone or email.",
+                )
+              }
             >
               <Text style={styles.forgotText}>Forgot password?</Text>
             </TouchableOpacity>
@@ -149,67 +157,16 @@ export default function LoginScreen() {
             />
 
             <View style={styles.registerPromptRow}>
-              <Text style={styles.promptText}>Don&apos;t have an account yet? </Text>
-              <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
+              <Text style={styles.promptText}>
+                Don&apos;t have an account yet?{" "}
+              </Text>
+              <TouchableOpacity onPress={() => router.push("/(auth)/register")}>
                 <Text style={styles.registerLink}>Create Account</Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Defense Quick Demo Account Presets */}
-          <View style={styles.demoSection}>
-            <View style={styles.demoDividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.demoDividerText}>DEFENSE PRESENTATION PRESETS</Text>
-              <View style={styles.dividerLine} />
-            </View>
 
-            <Text style={styles.demoHelperText}>
-              One-tap login as any actor for committee demonstration:
-            </Text>
-
-            <View style={styles.demoGrid}>
-              <TouchableOpacity
-                style={styles.demoChip}
-                onPress={() => handleDemoFill('buyer')}
-              >
-                <Ionicons name="cart" size={14} color={COLORS.info} />
-                <Text style={styles.demoChipText}>Buyer (Prosper)</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.demoChip}
-                onPress={() => handleDemoFill('seller')}
-              >
-                <Ionicons name="business" size={14} color={COLORS.success} />
-                <Text style={styles.demoChipText}>Seller (Paul)</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.demoChip}
-                onPress={() => handleDemoFill('surveyor')}
-              >
-                <Ionicons name="compass" size={14} color={COLORS.accent} />
-                <Text style={styles.demoChipText}>Surveyor (Samuel)</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.demoChip}
-                onPress={() => handleDemoFill('advisor')}
-              >
-                <Ionicons name="shield" size={14} color="#7C3AED" />
-                <Text style={styles.demoChipText}>Advisor (Christiane)</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.demoChip}
-                onPress={() => handleDemoFill('admin')}
-              >
-                <Ionicons name="settings" size={14} color={COLORS.primary} />
-                <Text style={styles.demoChipText}>Admin (Henri)</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -228,7 +185,7 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     marginBottom: SPACING.lg,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   titleSection: {
     marginBottom: SPACING.xxl,
@@ -247,7 +204,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xl,
   },
   forgotBtn: {
-    alignSelf: 'flex-end',
+    alignSelf: "flex-end",
     marginBottom: SPACING.lg,
   },
   forgotText: {
@@ -258,9 +215,9 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
   },
   registerPromptRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
   },
   promptText: {
     ...TYPOGRAPHY.body,
@@ -269,57 +226,5 @@ const styles = StyleSheet.create({
   registerLink: {
     ...TYPOGRAPHY.bodyBold,
     color: COLORS.secondary,
-  },
-  demoSection: {
-    marginTop: SPACING.xl,
-    backgroundColor: COLORS.background,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  demoDividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: SPACING.sm,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: COLORS.border,
-  },
-  demoDividerText: {
-    ...TYPOGRAPHY.micro,
-    color: COLORS.textMuted,
-    marginHorizontal: SPACING.sm,
-    letterSpacing: 0.8,
-  },
-  demoHelperText: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.md,
-    textAlign: 'center',
-  },
-  demoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: SPACING.sm,
-    justifyContent: 'center',
-  },
-  demoChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: COLORS.surface,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: RADIUS.round,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  demoChipText: {
-    ...TYPOGRAPHY.captionBold,
-    color: COLORS.textPrimary,
-    fontSize: 11,
   },
 });

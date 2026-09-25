@@ -139,7 +139,8 @@ export const ACCESS_ROADS = [
 ];
 
 // Helper to format currency in FCFA consistently
-export function formatFCFA(amount: number): string {
+export function formatFCFA(amount: number | undefined | null): string {
+  if (amount == null || isNaN(amount)) return '0 FCFA';
   return amount.toLocaleString('fr-FR') + ' FCFA';
 }
 

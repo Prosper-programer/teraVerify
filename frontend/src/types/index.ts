@@ -10,6 +10,7 @@ export interface User {
   role: UserRole;
   avatarUrl?: string;
   isPhoneVerified: boolean;
+  isSubscribed?: boolean;
   registeredAt: string;
   nationalIdNumber?: string;
   status: 'active' | 'suspended';
@@ -127,20 +128,19 @@ export interface PaymentTransaction {
 
 export interface ProfessionalAdvisor {
   id: string;
-  fullName: string;
-  roleTitle: string;
-  yearsOfExperience: number;
+  name: string;
+  title: string;
+  profession: 'notaire' | 'geometre_expert' | 'avocat_foncier' | 'expert_immobilier';
+  organization: string;
   bio: string;
-  specialties: string[];
+  specializations: string[];
   rating: number;
   reviewCount: number;
-  consultationFeeFCFA: number;
-  availableDays: string[];
-  availableHours: string;
-  phone: string;
-  email: string;
+  hourlyRateFCFA: number;
+  availability: string[];
   avatarUrl: string;
-  location: string;
+  region: string;
+  city: string;
 }
 
 export type AppointmentStatus = 'requested' | 'confirmed' | 'completed' | 'cancelled';

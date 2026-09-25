@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { AppNotification } from '../types';
 import { notificationService } from '../services/notificationService';
 import { useAuth } from './AuthContext';
+import { useSocket } from './SocketContext';
 
 interface NotificationContextType {
   notifications: AppNotification[];
@@ -35,6 +36,24 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     loadNotifications();
   }, [loadNotifications]);
+
+  const { socket } = useSocket();
+
+  useEffect(() => {
+    if (!socket) return;
+    
+    const handleNewNotification = (data: Partial<AppNotification>) => {
+      // Refresh the entire list from server to get the new notification with its correct DB id and timestamp
+      // Alternatively, we could push it locally. For robust state, we re-fetch:
+      loadNotifications();
+    };
+
+    socket.on('new_notification', handleNewNotification);
+
+    return () => {
+      socket.off('new_notification', handleNewNotification);
+    };
+  }, [socket, loadNotifications]);
 
   const markAsRead = async (id: string) => {
     await notificationService.markAsRead(id);

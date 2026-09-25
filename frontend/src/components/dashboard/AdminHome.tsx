@@ -18,10 +18,15 @@ import { useLand } from '../../store/LandContext';
 import { useVerification } from '../../store/VerificationContext';
 import { UserRole } from '../../types';
 import { formatFCFA } from '../../constants/cameroonData';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useLanguage } from '../../store/LanguageContext';
+import { useSocket } from '../../store/SocketContext';
 
 export const AdminHome: React.FC = () => {
   const router = useRouter();
   const { currentUser, allUsers, toggleUserStatus, refreshUsers, isLoading } = useAuth();
+  const { language, toggleLanguage, t } = useLanguage();
+  const insets = useSafeAreaInsets();
   const { lands, refreshLands } = useLand();
   const { requests, refreshRequests } = useVerification();
 
@@ -32,6 +37,25 @@ export const AdminHome: React.FC = () => {
   const onRefreshAll = async () => {
     await Promise.all([refreshUsers(), refreshLands(), refreshRequests()]);
   };
+
+  const { socket } = useSocket();
+  React.useEffect(() => {
+    if (!socket) return;
+    
+    const handleUpdate = () => onRefreshAll();
+    
+    socket.on('land_created', handleUpdate);
+    socket.on('land_updated', handleUpdate);
+    socket.on('verification_created', handleUpdate);
+    socket.on('verification_updated', handleUpdate);
+
+    return () => {
+      socket.off('land_created', handleUpdate);
+      socket.off('land_updated', handleUpdate);
+      socket.off('verification_created', handleUpdate);
+      socket.off('verification_updated', handleUpdate);
+    };
+  }, [socket, refreshUsers, refreshLands, refreshRequests]);
 
   const counts = useMemo(() => ({
     all: allUsers.length,
@@ -96,18 +120,31 @@ export const AdminHome: React.FC = () => {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.scrollContent}
+      contentContainerStyle={[
+        styles.scrollContent,
+        { paddingTop: Math.max(insets.top + 10, 40) }
+      ]}
       showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={isLoading} onRefresh={onRefreshAll} />}
     >
       {/* Humanized Clean Welcome Header */}
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Welcome, {currentUser?.fullName?.split(' ')[0] || 'Admin'}</Text>
-          <Text style={styles.headerSubtitle}>Manage user accounts and oversee land plots</Text>
+          <Text style={styles.headerTitle}>{t('admin.welcome')}, {currentUser?.fullName?.split(' ')[0] || 'Admin'}</Text>
+          <Text style={styles.headerSubtitle}>{t('admin.subtitle2')}</Text>
         </View>
 
         <View style={styles.headerRightActions}>
+          <TouchableOpacity
+            style={styles.langBtn}
+            onPress={toggleLanguage}
+            activeOpacity={0.7}
+          >
+            <Text style={{ fontSize: 14, marginRight: 4 }}>
+              {language === 'EN' ? '🇬🇧' : '🇫🇷'}
+            </Text>
+            <Text style={styles.langBtnText}>{language}</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={styles.notifBtn}
             onPress={() => router.push('/(tabs)/notifications')}
@@ -138,7 +175,7 @@ export const AdminHome: React.FC = () => {
             <Ionicons name="people" size={18} color={COLORS.primary} />
           </View>
           <Text style={styles.statNumber}>{counts.all}</Text>
-          <Text style={styles.statLabel}>Total Users</Text>
+          <Text style={styles.statLabel}>{t('admin.statUsers')}</Text>
         </View>
 
         <View style={[styles.statCard, { borderLeftColor: '#6366f1', width: '48%', marginBottom: SPACING.sm }]}>
@@ -146,7 +183,7 @@ export const AdminHome: React.FC = () => {
             <Ionicons name="map" size={18} color="#4f46e5" />
           </View>
           <Text style={styles.statNumber}>{lands.length}</Text>
-          <Text style={styles.statLabel}>Total Lands</Text>
+          <Text style={styles.statLabel}>{t('admin.statLands')}</Text>
         </View>
 
         <View style={[styles.statCard, { borderLeftColor: '#F59E0B', width: '48%' }]}>
@@ -154,7 +191,7 @@ export const AdminHome: React.FC = () => {
             <Ionicons name="time" size={18} color="#D97706" />
           </View>
           <Text style={styles.statNumber}>{counts.pendingVerifs}</Text>
-          <Text style={styles.statLabel}>Pending Verifications</Text>
+          <Text style={styles.statLabel}>{t('admin.statPending')}</Text>
         </View>
 
         <View style={[styles.statCard, { borderLeftColor: COLORS.success, width: '48%' }]}>
@@ -162,7 +199,7 @@ export const AdminHome: React.FC = () => {
             <Ionicons name="shield-checkmark" size={18} color={COLORS.success} />
           </View>
           <Text style={styles.statNumber}>{counts.verifiedPlots}</Text>
-          <Text style={styles.statLabel}>Verified Lands</Text>
+          <Text style={styles.statLabel}>{t('admin.statVerified')}</Text>
         </View>
 
         <View style={[styles.statCard, { borderLeftColor: '#ec4899', width: '100%', marginTop: SPACING.sm }]}>
@@ -170,7 +207,7 @@ export const AdminHome: React.FC = () => {
             <Ionicons name="cash" size={18} color="#db2777" />
           </View>
           <Text style={styles.statNumber}>142</Text>
-          <Text style={styles.statLabel}>Basic Payment Count</Text>
+          <Text style={styles.statLabel}>{t('admin.statPayment')}</Text>
         </View>
       </View>
 
@@ -187,7 +224,7 @@ export const AdminHome: React.FC = () => {
             color={activeTab === 'users' ? '#FFFFFF' : COLORS.textSecondary}
           />
           <Text style={[styles.navTabText, activeTab === 'users' && styles.navTabTextActive]}>
-            User Directory ({counts.all})
+            {t('admin.tabUsers')} ({counts.all})
           </Text>
         </TouchableOpacity>
 
@@ -202,7 +239,7 @@ export const AdminHome: React.FC = () => {
             color={activeTab === 'listings' ? '#FFFFFF' : COLORS.textSecondary}
           />
           <Text style={[styles.navTabText, activeTab === 'listings' && styles.navTabTextActive]}>
-            Land Plots ({lands.length})
+            {t('admin.tabListings')} ({lands.length})
           </Text>
         </TouchableOpacity>
 
@@ -217,7 +254,7 @@ export const AdminHome: React.FC = () => {
             color={activeTab === 'verifications' ? '#FFFFFF' : COLORS.textSecondary}
           />
           <Text style={[styles.navTabText, activeTab === 'verifications' && styles.navTabTextActive]}>
-            Verifications
+            {t('admin.tabVerifications')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -230,7 +267,7 @@ export const AdminHome: React.FC = () => {
             <Ionicons name="search-outline" size={18} color={COLORS.textMuted} style={{ marginRight: 8 }} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search by name, email, or phone..."
+              placeholder={t('admin.searchUser')}
               placeholderTextColor={COLORS.textMuted}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -273,8 +310,8 @@ export const AdminHome: React.FC = () => {
             {filteredUsers.length === 0 ? (
               <View style={styles.emptyCard}>
                 <Ionicons name="search" size={32} color={COLORS.textMuted} />
-                <Text style={styles.emptyTitle}>No users found</Text>
-                <Text style={styles.emptySub}>Try searching with a different name or role filter.</Text>
+                <Text style={styles.emptyTitle}>{t('admin.emptyUsersTitle')}</Text>
+                <Text style={styles.emptySub}>{t('admin.emptyUsersSub')}</Text>
               </View>
             ) : (
               filteredUsers.map((user) => {
@@ -336,7 +373,7 @@ export const AdminHome: React.FC = () => {
                               color={isSuspended ? '#15803D' : '#DC2626'}
                             />
                             <Text style={[styles.actionBtnText, { color: isSuspended ? '#15803D' : '#DC2626' }]}>
-                              {isSuspended ? 'Reactivate' : 'Suspend'}
+                              {isSuspended ? t('admin.activateBtn') : t('admin.suspendBtn')}
                             </Text>
                           </TouchableOpacity>
                         </View>
@@ -394,7 +431,7 @@ export const AdminHome: React.FC = () => {
                       }}
                     >
                       <Ionicons name="trash-outline" size={14} color="#DC2626" />
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: '#DC2626' }}>Remove</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: '#DC2626' }}>{t('admin.removeBtn')}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -408,8 +445,8 @@ export const AdminHome: React.FC = () => {
       {activeTab === 'verifications' && (
         <View style={styles.landListSection}>
           <View style={{ marginBottom: SPACING.md }}>
-            <Text style={{ ...TYPOGRAPHY.h3, color: COLORS.primary }}>Cadastral Requests Log</Text>
-            <Text style={{ ...TYPOGRAPHY.caption, color: COLORS.textSecondary }}>Monitor Surveyor activities and manual verifications.</Text>
+            <Text style={{ ...TYPOGRAPHY.h3, color: COLORS.primary }}>{t('admin.logTitle')}</Text>
+            <Text style={{ ...TYPOGRAPHY.caption, color: COLORS.textSecondary }}>{t('admin.logSub')}</Text>
           </View>
           
           {requests.length === 0 ? (
@@ -473,7 +510,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.lg,
     paddingBottom: SPACING.xxxl,
   },
   header: {
@@ -496,6 +532,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
+  },
+  langBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: RADIUS.round,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  langBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.primary,
   },
   notifBtn: {
     width: 40,

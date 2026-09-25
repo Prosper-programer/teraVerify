@@ -4,9 +4,11 @@ const landController = require('../controllers/landController');
 
 const { requireAuth, requireRole } = require('../middleware/authMiddleware');
 
+const upload = require('../middleware/uploadMiddleware');
+
 router.get('/', landController.getAllLands);
 router.get('/:id', landController.getLandById);
-router.post('/', requireAuth, landController.createLand);
+router.post('/', requireAuth, requireRole('seller', 'admin'), upload.array('documents', 5), landController.createLand);
 router.put('/:id/status', requireAuth, requireRole('admin', 'surveyor'), landController.updateLandStatus);
 router.delete('/:id', requireAuth, requireRole('admin'), landController.deleteLand);
 

@@ -21,12 +21,14 @@ interface CadastralCertificateModalProps {
   visible: boolean;
   onClose: () => void;
   land?: LandProperty | null;
+  isUnlocked?: boolean;
 }
 
 export const CadastralCertificateModal: React.FC<CadastralCertificateModalProps> = ({
   visible,
   onClose,
   land,
+  isUnlocked = false,
 }) => {
   if (!land) return null;
 
@@ -108,7 +110,7 @@ export const CadastralCertificateModal: React.FC<CadastralCertificateModalProps>
             <View style={styles.detailsGrid}>
               <View style={styles.gridRow}>
                 <Text style={styles.gridLabel}>N° Titre Foncier :</Text>
-                <Text style={styles.gridValueBold}>{land.landTitleNumber}</Text>
+                <Text style={styles.gridValueBold}>{isUnlocked ? land.landTitleNumber : 'TF-***-PROTECTED'}</Text>
               </View>
               <View style={styles.gridRow}>
                 <Text style={styles.gridLabel}>Localisation :</Text>

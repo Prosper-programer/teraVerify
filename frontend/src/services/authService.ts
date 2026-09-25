@@ -1,4 +1,4 @@
-// Authentication service with session management and demo role switcher
+// Authentication service with session management
 import { User, UserRole } from '../types';
 import { storageService } from './storageService';
 import { apiClient } from './apiClient';
@@ -18,6 +18,18 @@ export const authService = {
       return map;
     }
     return {};
+  },
+
+  async subscribe(userId: string): Promise<User> {
+    const apiRes = await apiClient.put<{ id: string; isSubscribed: boolean }>(`/users/${userId}/subscribe`);
+    // Optimistically update current user if it matches
+    const currentUser = await this.getCurrentUser();
+    if (currentUser && currentUser.id === userId) {
+      const updated = { ...currentUser, isSubscribed: true };
+      await storageService.setItem(AUTH_USER_KEY, updated);
+      return updated;
+    }
+    return currentUser as User;
   },
 
   async getCurrentUser(): Promise<User | null> {
@@ -53,6 +65,7 @@ export const authService = {
     phone: string;
     password: string;
     role: UserRole;
+    avatarUrl?: string;
   }): Promise<{ user: User; token: string }> {
     const apiRes = await apiClient.post<{ user: User; token: string }>('/auth/register', {
       fullName: params.fullName,
@@ -60,6 +73,7 @@ export const authService = {
       phone: params.phone,
       password: params.password,
       role: params.role,
+      avatarUrl: params.avatarUrl,
     });
     if (apiRes && apiRes.user) {
       await this.setCurrentUser(apiRes.user, apiRes.token);
@@ -84,16 +98,7 @@ export const authService = {
   },
 
   async logout(): Promise<void> {
-    await storageService.removeItem(AUTH_USER_KEY);
-  },
-
-  // Switch roles instantly during defense presentation
-  async switchDemoRole(role: UserRole): Promise<User | null> {
-    if (role === 'visitor') {
-      await this.setCurrentUser(null);
-      return null;
-    }
-    throw new Error('Demo roles are disabled. Please log in with a valid account.');
+    await this.setCurrentUser(null);
   },
 
   async getAllUsers(): Promise<User[]> {

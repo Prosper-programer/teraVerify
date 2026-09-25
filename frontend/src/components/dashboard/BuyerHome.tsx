@@ -16,17 +16,44 @@ import { COLORS, SPACING, RADIUS, TYPOGRAPHY, SHADOWS } from '../../constants/th
 import { useAuth } from '../../store/AuthContext';
 import { useLand } from '../../store/LandContext';
 import { useNotifications } from '../../store/NotificationContext';
+import { useLanguage } from '../../store/LanguageContext';
 import { PropertyCard } from '../property/PropertyCard';
 import { Button } from '../common/Button';
 import { CadastralGuideModal } from '../property/CadastralGuideModal';
 import { CadastralCertificateModal } from '../property/CadastralCertificateModal';
 import { LandProperty } from '../../types';
+import { useProtectedAction } from '../../utils/useProtectedAction';
+import { useSocket } from '../../store/SocketContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export const BuyerHome: React.FC = () => {
   const router = useRouter();
   const { currentUser, role } = useAuth();
   const { lands, isLoading, refreshLands, savedLandIds, toggleSaveLand } = useLand();
   const { unreadCount } = useNotifications();
+  const { language, toggleLanguage, t } = useLanguage();
+  const insets = useSafeAreaInsets();
+
+  const { requireAuth } = useProtectedAction();
+
+  const { socket } = useSocket();
+  React.useEffect(() => {
+    if (!socket) return;
+    
+    const handleUpdate = () => refreshLands();
+    
+    socket.on('land_created', handleUpdate);
+    socket.on('land_updated', handleUpdate);
+
+    return () => {
+      socket.off('land_created', handleUpdate);
+      socket.off('land_updated', handleUpdate);
+    };
+  }, [socket, refreshLands]);
+
+  const handleToggleSave = (landId: string) => {
+    toggleSaveLand(landId);
+  };
 
   const [selectedRegion, setSelectedRegion] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,7 +62,7 @@ export const BuyerHome: React.FC = () => {
   const [selectedCertLand, setSelectedCertLand] = useState<LandProperty | null>(null);
 
   const regions = [
-    { id: 'all', label: 'All Cameroon' },
+    { id: 'all', label: t('region.all') },
     { id: 'centre', label: 'Centre (Yaoundé)' },
     { id: 'littoral', label: 'Littoral (Douala)' },
     { id: 'sud', label: 'Sud (Kribi)' },
@@ -57,15 +84,17 @@ export const BuyerHome: React.FC = () => {
     return true;
   });
 
-  const featuredLands = filteredLands.filter((l) => l.isFeatured && l.verificationStatus === 'verified');
-  const otherLands = filteredLands.filter((l) => !l.isFeatured || l.verificationStatus !== 'verified');
+  const displayLands = filteredLands.slice(0, 4);
 
-  const greetingName = currentUser ? currentUser.fullName.split(' ')[0] : 'Visitor';
+  const greetingName = currentUser ? currentUser.fullName.split(' ')[0] : t('header.visitor');
 
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.scrollContent}
+      contentContainerStyle={[
+        styles.scrollContent,
+        { paddingTop: Math.max(insets.top + 10, 40) }
+      ]}
       showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refreshLands} />}
     >
@@ -81,16 +110,28 @@ export const BuyerHome: React.FC = () => {
               <Text style={styles.flagIcon}>🇨🇲</Text>
             </View>
             <Text style={styles.headerSubtitle}>
-              {currentUser ? `Hello, ${greetingName}` : 'Land & Title Portal'}
+              {currentUser ? `${t('header.hello')}, ${greetingName}` : t('header.subtitle')}
             </Text>
           </View>
         </View>
 
         <View style={styles.headerActions}>
+          {/* Language Toggle with Flag Icons */}
+          <TouchableOpacity
+            style={styles.langBtn}
+            onPress={toggleLanguage}
+            activeOpacity={0.7}
+          >
+            <Text style={{ fontSize: 14, marginRight: 4 }}>
+              {language === 'EN' ? '🇬🇧' : '🇫🇷'}
+            </Text>
+            <Text style={styles.langBtnText}>{language}</Text>
+          </TouchableOpacity>
+
           {/* Notification Icon with Badge */}
           <TouchableOpacity
             style={styles.iconBtn}
-            onPress={() => router.push('/(tabs)/notifications')}
+            onPress={() => requireAuth(() => router.push('/(tabs)/notifications'))}
             activeOpacity={0.7}
           >
             <Ionicons name="notifications-outline" size={22} color={COLORS.primary} />
@@ -108,7 +149,7 @@ export const BuyerHome: React.FC = () => {
               if (currentUser) {
                 router.push('/(tabs)/profile');
               } else {
-                router.push('/(auth)/login');
+                router.push('/(auth)/welcome');
               }
             }}
             activeOpacity={0.8}
@@ -130,7 +171,7 @@ export const BuyerHome: React.FC = () => {
         <Ionicons name="search-outline" size={20} color={COLORS.primary} style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search by title number (e.g. LT-2026) or city..."
+          placeholder={t('search.placeholder')}
           placeholderTextColor={COLORS.textMuted}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -141,6 +182,8 @@ export const BuyerHome: React.FC = () => {
           </TouchableOpacity>
         )}
       </View>
+
+
 
       {/* Land Title Verification Card */}
       <View style={styles.reportingCard}>
@@ -178,7 +221,7 @@ export const BuyerHome: React.FC = () => {
         <TouchableOpacity
           activeOpacity={0.88}
           style={styles.verifyActionBtn}
-          onPress={() => router.push('/property/verify-title')}
+          onPress={() => requireAuth(() => router.push('/property/verify-title'))}
         >
           <Ionicons name="search" size={16} color={COLORS.primary} style={{ marginRight: 6 }} />
           <Text style={styles.verifyActionText}>Check a Title Number</Text>
@@ -190,14 +233,14 @@ export const BuyerHome: React.FC = () => {
       <View style={styles.quickGrid}>
         <TouchableOpacity
           style={styles.quickCard}
-          onPress={() => router.push('/property/verify-title')}
+          onPress={() => requireAuth(() => router.push('/property/verify-title'))}
           activeOpacity={0.8}
         >
           <View style={[styles.quickIconCircle, { backgroundColor: '#E8F0FE' }]}>
             <Ionicons name="shield-checkmark" size={22} color={COLORS.primary} />
           </View>
-          <Text style={styles.quickCardTitle}>Verify Title</Text>
-          <Text style={styles.quickCardSub}>Instant Lookup</Text>
+          <Text style={styles.quickCardTitle}>{t('quick.verify')}</Text>
+          <Text style={styles.quickCardSub}>{t('quick.verifySub')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -208,20 +251,20 @@ export const BuyerHome: React.FC = () => {
           <View style={[styles.quickIconCircle, { backgroundColor: '#EDE9FE' }]}>
             <Ionicons name="people" size={22} color="#7C3AED" />
           </View>
-          <Text style={styles.quickCardTitle}>Legal Advisor</Text>
-          <Text style={styles.quickCardSub}>Consult Experts</Text>
+          <Text style={styles.quickCardTitle}>{t('quick.advisor')}</Text>
+          <Text style={styles.quickCardSub}>{t('quick.advisorSub')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.quickCard}
-          onPress={() => router.push('/seller/submit')}
+          onPress={() => requireAuth(() => router.push('/seller/submit'))}
           activeOpacity={0.8}
         >
           <View style={[styles.quickIconCircle, { backgroundColor: '#ECFDF5' }]}>
             <Ionicons name="add-circle" size={22} color={COLORS.success} />
           </View>
-          <Text style={styles.quickCardTitle}>Sell Land</Text>
-          <Text style={styles.quickCardSub}>List Property</Text>
+          <Text style={styles.quickCardTitle}>{t('quick.sell')}</Text>
+          <Text style={styles.quickCardSub}>{t('quick.sellSub')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -232,10 +275,65 @@ export const BuyerHome: React.FC = () => {
           <View style={[styles.quickIconCircle, { backgroundColor: '#FFFBEB' }]}>
             <Ionicons name="book" size={22} color="#D97706" />
           </View>
-          <Text style={styles.quickCardTitle}>Buyer Guide</Text>
-          <Text style={styles.quickCardSub}>Tips & Safe Buying</Text>
+          <Text style={styles.quickCardTitle}>{t('quick.guide')}</Text>
+          <Text style={styles.quickCardSub}>{t('quick.guideSub')}</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Seamless Join Community Section - Organic Design */}
+      {!currentUser && (
+        <View style={styles.communitySection}>
+          <View style={styles.communityImageContainer}>
+            <Image
+              source={{ uri: 'https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=800&q=80' }} // Cadastral documents / Blueprint
+              style={styles.communityImage}
+              resizeMode="cover"
+            />
+            <View style={styles.communityImageOverlay} />
+            <View style={styles.communityImageTextContainer}>
+              <Text style={styles.communityImageTitle}>{t('community.title')}</Text>
+              <Text style={styles.communityImageDesc}>{t('community.desc')}</Text>
+            </View>
+          </View>
+          
+          <View style={styles.communityActionsWrapper}>
+            <Text style={styles.communityActionHeader}>{t('community.actionHeader')}</Text>
+            
+            <TouchableOpacity style={styles.communityActionCard} onPress={() => router.push({ pathname: '/(auth)/register', params: { defaultRole: 'buyer' } })} activeOpacity={0.7}>
+              <View style={[styles.communityActionIcon, { backgroundColor: '#F0F9FF' }]}>
+                <Ionicons name="search" size={22} color="#0284C7" />
+              </View>
+              <View style={styles.communityActionTextCol}>
+                <Text style={styles.communityActionTitle}>{t('community.buyTitle')}</Text>
+                <Text style={styles.communityActionSub}>{t('community.buySub')}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.communityActionCard} onPress={() => router.push({ pathname: '/(auth)/register', params: { defaultRole: 'seller' } })} activeOpacity={0.7}>
+              <View style={[styles.communityActionIcon, { backgroundColor: '#ECFDF5' }]}>
+                <Ionicons name="map" size={22} color="#059669" />
+              </View>
+              <View style={styles.communityActionTextCol}>
+                <Text style={styles.communityActionTitle}>{t('community.sellTitle')}</Text>
+                <Text style={styles.communityActionSub}>{t('community.sellSub')}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.communityActionCard} onPress={() => router.push({ pathname: '/(auth)/register', params: { defaultRole: 'advisor' } })} activeOpacity={0.7}>
+              <View style={[styles.communityActionIcon, { backgroundColor: '#F5F3FF' }]}>
+                <Ionicons name="document-text" size={22} color="#7C3AED" />
+              </View>
+              <View style={styles.communityActionTextCol}>
+                <Text style={styles.communityActionTitle}>{t('community.adviseTitle')}</Text>
+                <Text style={styles.communityActionSub}>{t('community.adviseSub')}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* Region Filter Chips */}
       <View style={styles.regionsRow}>
@@ -260,45 +358,23 @@ export const BuyerHome: React.FC = () => {
       {/* Featured Verified Lands Section */}
       <View style={styles.sectionHeader}>
         <View>
-          <Text style={styles.sectionTitle}>Featured Verified Plots</Text>
-          <Text style={styles.sectionSubtitle}>Handpicked properties with verified titles</Text>
+          <Text style={styles.sectionTitle}>{t('section.featured')}</Text>
+          <Text style={styles.sectionSubtitle}>{t('section.featuredSub')}</Text>
         </View>
         <TouchableOpacity onPress={() => router.push('/(tabs)/explore')}>
-          <Text style={styles.seeAllText}>See all</Text>
+          <Text style={styles.seeAllText}>{t('section.seeAll')}</Text>
         </TouchableOpacity>
       </View>
 
-      {featuredLands.map((land) => (
+      {displayLands.map((land) => (
         <PropertyCard
           key={land.id}
           land={land}
-          onPress={() => router.push(`/property/${land.id}`)}
+          onPress={() => requireAuth(() => router.push(`/property/${land.id}`))}
           isSaved={savedLandIds.includes(land.id)}
-          onToggleSave={() => toggleSaveLand(land.id)}
+          onToggleSave={() => handleToggleSave(land.id)}
         />
       ))}
-
-      {/* Additional Verified Opportunities */}
-      {otherLands.length > 0 && (
-        <>
-          <View style={[styles.sectionHeader, { marginTop: SPACING.md }]}>
-            <View>
-              <Text style={styles.sectionTitle}>Available Properties</Text>
-              <Text style={styles.sectionSubtitle}>Explore verified land listings across Cameroon</Text>
-            </View>
-          </View>
-
-          {otherLands.map((land) => (
-            <PropertyCard
-              key={land.id}
-              land={land}
-              onPress={() => router.push(`/property/${land.id}`)}
-              isSaved={savedLandIds.includes(land.id)}
-              onToggleSave={() => toggleSaveLand(land.id)}
-            />
-          ))}
-        </>
-      )}
 
       {/* Need Professional Guidance Banner */}
       <View style={styles.advisorBanner}>
@@ -350,7 +426,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.lg,
     paddingBottom: SPACING.xxxl,
   },
   quickGrid: {
@@ -438,7 +513,22 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.sm + 4,
+    gap: SPACING.sm,
+  },
+  langBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: RADIUS.round,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  langBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.primary,
   },
   iconBtn: {
     width: 42,
@@ -714,28 +804,84 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.primary, // Dark royal blue on white
   },
-  visitorCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.lg,
-    borderWidth: 1.5,
-    borderColor: COLORS.secondary,
-    marginBottom: SPACING.lg,
-    ...SHADOWS.sm,
+  communitySection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: RADIUS.xl,
+    marginBottom: SPACING.xl,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    ...SHADOWS.md,
   },
-  visitorTitle: {
-    ...TYPOGRAPHY.h3,
-    color: COLORS.primary,
+  communityImageContainer: {
+    width: '100%',
+    height: 160,
+    position: 'relative',
+    backgroundColor: COLORS.primaryDark,
+  },
+  communityImage: {
+    width: '100%',
+    height: '100%',
+  },
+  communityImageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)', // Darken for text readability
+  },
+  communityImageTextContainer: {
+    position: 'absolute',
+    bottom: SPACING.lg,
+    left: SPACING.lg,
+    right: SPACING.lg,
+  },
+  communityImageTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#FFFFFF',
     marginBottom: 4,
   },
-  visitorDesc: {
-    ...TYPOGRAPHY.body,
-    color: COLORS.textSecondary,
-    lineHeight: 20,
+  communityImageDesc: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.85)',
+    lineHeight: 18,
+  },
+  communityActionsWrapper: {
+    padding: SPACING.lg,
+    backgroundColor: '#FFFFFF',
+  },
+  communityActionHeader: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
     marginBottom: SPACING.md,
   },
-  visitorBtnRow: {
+  communityActionCard: {
     flexDirection: 'row',
-    gap: SPACING.md,
+    alignItems: 'center',
+    paddingVertical: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  communityActionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.md,
+  },
+  communityActionTextCol: {
+    flex: 1,
+  },
+  communityActionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 2,
+  },
+  communityActionSub: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: COLORS.textMuted,
   },
 });

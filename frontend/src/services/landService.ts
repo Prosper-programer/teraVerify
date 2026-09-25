@@ -20,16 +20,56 @@ export interface LandFilterParams {
 
 export const landService = {
   async getLands(filters?: LandFilterParams): Promise<LandListing[]> {
-    const apiLands = await apiClient.get<LandListing[]>('/lands');
     let lands: LandListing[] = [];
-
-    if (apiLands && Array.isArray(apiLands) && apiLands.length > 0) {
-      lands = apiLands;
-      await storageService.setItem(LANDS_KEY, lands);
-    } else {
+    try {
+      const apiLands = await apiClient.get<LandListing[]>('/lands');
+      if (apiLands && Array.isArray(apiLands) && apiLands.length > 0) {
+        lands = apiLands;
+        await storageService.setItem(LANDS_KEY, lands);
+      } else {
+        lands = await storageService.getItem<LandListing[]>(LANDS_KEY, []);
+      }
+    } catch (error) {
+      console.warn("API fetch failed, falling back to cache", error);
       lands = await storageService.getItem<LandListing[]>(LANDS_KEY, []);
     }
-    
+
+    // Fallback if absolutely no lands are found anywhere (first launch offline)
+    if (lands.length === 0) {
+      lands = [
+        {
+          id: 'land-001', title: '1000m² Residential Plot in Odza', landTitleNumber: 'TF-2023-ODZA-001',
+          description: 'Beautiful flat plot located in the heart of Odza, Yaoundé. Perfect for a family residence or an apartment building. Electricity and water access nearby.',
+          region: 'Centre', division: 'Mfoundi', subdivision: 'Yaoundé IV', neighborhood: 'Odza', areaSqM: 1000, priceFCFA: 15000000, unlockFeeFCFA: 10000, landType: 'residential', topography: 'flat', accessRoad: 'paved',
+          images: ["https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=800&q=80"],
+          exactLocation: { coordinates: { latitude: 3.8058, longitude: 11.5215 }, streetAddress: 'Carrefour Koweit, Odza', landmarkDescription: 'Behind the new pharmacy' },
+          sellerContact: { id: 'user-seller-01', name: 'Paul Njoya', phone: '+237 699 12 34 56', email: 'paul.njoya@example.com' },
+          verificationStatus: 'verified', isPublished: true, isFeatured: true, surveyorNotes: 'Land boundaries verified against cadastral map 12-A.', sellerId: 'user-seller-01', submittedAt: new Date().toISOString(), documents: []
+        },
+        {
+          id: 'land-002', title: 'Prime Commercial Land in Bonamoussadi', landTitleNumber: 'TF-2022-BONA-088',
+          description: 'High visibility commercial plot situated on the main road in Bonamoussadi, Douala.',
+          region: 'Littoral', division: 'Wouri', subdivision: 'Douala V', neighborhood: 'Bonamoussadi', areaSqM: 500, priceFCFA: 35000000, unlockFeeFCFA: 15000, landType: 'commercial', topography: 'flat', accessRoad: 'paved',
+          images: ["https://images.unsplash.com/photo-1590682680695-43b964a3ae17?w=800&q=80"],
+          verificationStatus: 'verified', isPublished: true, isFeatured: true, sellerId: 'user-seller-01', submittedAt: new Date().toISOString(), documents: []
+        },
+        {
+          id: 'land-003', title: 'Agricultural Land near Lobé Falls', landTitleNumber: 'TF-2021-KRIBI-012',
+          description: 'Vast agricultural expanse with rich red soil. Features river access, perfect for palm or rubber plantations.',
+          region: 'Sud', division: 'Ocean', subdivision: 'Kribi I', neighborhood: 'Lobé', areaSqM: 50000, priceFCFA: 20000000, unlockFeeFCFA: 5000, landType: 'agricultural', topography: 'gentle_slope', accessRoad: 'dirt_road',
+          images: ["https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=800&q=80"],
+          verificationStatus: 'verified', isPublished: true, isFeatured: true, sellerId: 'user-seller-01', submittedAt: new Date().toISOString(), documents: []
+        },
+        {
+          id: 'land-004', title: 'Sea View Plot in Limbe', landTitleNumber: 'TF-2024-LIMBE-045',
+          description: 'Elevated plot offering breathtaking views of the Atlantic Ocean. Perfect for a luxury villa or boutique hotel.',
+          region: 'Sud-Ouest', division: 'Fako', subdivision: 'Limbe I', neighborhood: 'Down Beach', areaSqM: 800, priceFCFA: 12000000, unlockFeeFCFA: 10000, landType: 'residential', topography: 'elevated', accessRoad: 'secondary',
+          images: ["https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80"],
+          verificationStatus: 'verified', isPublished: true, isFeatured: true, sellerId: 'user-seller-01', submittedAt: new Date().toISOString(), documents: []
+        }
+      ];
+    }
+
     if (!filters) return lands;
 
     return lands.filter((land) => {

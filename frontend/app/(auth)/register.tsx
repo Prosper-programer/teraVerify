@@ -1,6 +1,6 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView } from "react-native-safe-area-context";
 // Registration Screen with Role Selection Dropdown (No OTP)
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -11,14 +11,20 @@ import {
   Platform,
   Alert,
   Modal,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, RADIUS, TYPOGRAPHY, SHADOWS } from '../../src/constants/theme';
-import { Input } from '../../src/components/common/Input';
-import { Button } from '../../src/components/common/Button';
-import { useAuth } from '../../src/store/AuthContext';
-import { UserRole } from '../../src/types';
+} from "react-native";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import {
+  COLORS,
+  SPACING,
+  RADIUS,
+  TYPOGRAPHY,
+  SHADOWS,
+} from "../../src/constants/theme";
+import { Input } from "../../src/components/common/Input";
+import { Button } from "../../src/components/common/Button";
+import { useAuth } from "../../src/store/AuthContext";
+import { UserRole } from "../../src/types";
 
 interface RoleOption {
   role: UserRole;
@@ -30,70 +36,75 @@ interface RoleOption {
 
 const ROLE_OPTIONS: RoleOption[] = [
   {
-    role: 'buyer',
-    title: 'Buyer / Investor',
-    subtitle: 'Browse & buy verified plots, contact sellers securely',
-    icon: 'cart-outline',
-    badgeColor: COLORS.info,
+    role: "buyer",
+    title: "Buyer / Investor",
+    subtitle: "Browse & buy verified plots, contact sellers securely",
+    icon: "cart-outline",
+    badgeColor: "#0284C7", // Matches visitor CTA blue
   },
   {
-    role: 'seller',
-    title: 'Land Owner / Seller',
-    subtitle: 'List your property and request fast title verification',
-    icon: 'business-outline',
-    badgeColor: COLORS.success,
+    role: "seller",
+    title: "Land Owner / Seller",
+    subtitle: "List your property and request fast title verification",
+    icon: "business-outline",
+    badgeColor: "#059669", // Matches visitor CTA green
   },
   {
-    role: 'surveyor',
-    title: 'Certified Land Surveyor',
-    subtitle: 'Review deed documents and verify plot boundaries',
-    icon: 'compass-outline',
+    role: "surveyor",
+    title: "Certified Land Surveyor",
+    subtitle: "Review deed documents and verify plot boundaries",
+    icon: "compass-outline",
     badgeColor: COLORS.accent,
   },
   {
-    role: 'advisor',
-    title: 'Legal & Land Advisor',
-    subtitle: 'Guide clients on safe purchasing and legal requirements',
-    icon: 'shield-outline',
-    badgeColor: '#7C3AED',
+    role: "advisor",
+    title: "Legal & Land Advisor",
+    subtitle: "Guide clients on safe purchasing and legal requirements",
+    icon: "shield-outline",
+    badgeColor: "#7C3AED", // Matches visitor CTA purple
   },
 ];
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { defaultRole } = useLocalSearchParams<{ defaultRole?: UserRole }>();
   const { register } = useAuth();
 
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [selectedRole, setSelectedRole] = useState<UserRole>('buyer');
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  
+  // Use passed param or default to 'buyer'
+  const [selectedRole, setSelectedRole] = useState<UserRole>(defaultRole && ['buyer', 'seller', 'advisor', 'surveyor'].includes(defaultRole) ? defaultRole : "buyer");
+  
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  const activeRoleConfig = ROLE_OPTIONS.find((r) => r.role === selectedRole) || ROLE_OPTIONS[0];
+  const activeRoleConfig =
+    ROLE_OPTIONS.find((r) => r.role === selectedRole) || ROLE_OPTIONS[0];
 
   const validate = () => {
     const errs: { [key: string]: string } = {};
 
-    if (!fullName.trim() || fullName.trim().split(' ').length < 2) {
-      errs.fullName = 'Please enter your full legal name (First & Last name).';
+    if (!fullName.trim() || fullName.trim().split(" ").length < 2) {
+      errs.fullName = "Please enter your full legal name (First & Last name).";
     }
-    if (!email.trim() || !email.includes('@')) {
-      errs.email = 'Please enter a valid email address.';
+    if (!email.trim() || !email.includes("@")) {
+      errs.email = "Please enter a valid email address.";
     }
-    if (!phone.trim() || phone.replace(/\D/g, '').length < 9) {
-      errs.phone = 'Please enter a valid 9-digit Cameroonian phone number.';
+    if (!phone.trim() || phone.replace(/\D/g, "").length < 9) {
+      errs.phone = "Please enter a valid 9-digit Cameroonian phone number.";
     }
     if (!password || password.length < 6) {
-      errs.password = 'Password must be at least 6 characters.';
+      errs.password = "Password must be at least 6 characters.";
     }
     if (password !== confirmPassword) {
-      errs.confirmPassword = 'Passwords do not match.';
+      errs.confirmPassword = "Passwords do not match.";
     }
 
     setErrors(errs);
@@ -111,11 +122,15 @@ export default function RegisterScreen() {
         phone: phone.trim(),
         password,
         role: selectedRole,
+        avatarUrl: avatarUrl.trim(),
       });
 
-      setShowSuccessModal(true);
+      router.replace("/(tabs)");
     } catch (err: any) {
-      Alert.alert('Registration Failed', err.message || 'Could not complete registration.');
+      Alert.alert(
+        "Registration Failed",
+        err.message || "Could not complete registration.",
+      );
     } finally {
       setLoading(false);
     }
@@ -124,7 +139,7 @@ export default function RegisterScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
         <ScrollView
@@ -136,7 +151,7 @@ export default function RegisterScreen() {
             style={styles.backBtn}
             onPress={() => {
               if (router.canGoBack()) router.back();
-              else router.replace('/(tabs)');
+              else router.replace("/(tabs)");
             }}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
@@ -146,7 +161,8 @@ export default function RegisterScreen() {
           <View style={styles.titleSection}>
             <Text style={styles.title}>Create Account</Text>
             <Text style={styles.subtitle}>
-              Join Cameroon&apos;s verified land marketplace and titling network.
+              Join Cameroon&apos;s verified land marketplace and titling
+              network.
             </Text>
           </View>
 
@@ -158,18 +174,33 @@ export default function RegisterScreen() {
               style={styles.dropdownSelector}
               onPress={() => setIsDropdownOpen(true)}
             >
-              <View style={[styles.roleIconCircle, { backgroundColor: `${activeRoleConfig.badgeColor}18` }]}>
-                <Ionicons name={activeRoleConfig.icon} size={20} color={activeRoleConfig.badgeColor} />
+              <View
+                style={[
+                  styles.roleIconCircle,
+                  { backgroundColor: `${activeRoleConfig.badgeColor}18` },
+                ]}
+              >
+                <Ionicons
+                  name={activeRoleConfig.icon}
+                  size={20}
+                  color={activeRoleConfig.badgeColor}
+                />
               </View>
 
               <View style={styles.dropdownTextCol}>
-                <Text style={styles.dropdownRoleTitle}>{activeRoleConfig.title}</Text>
+                <Text style={styles.dropdownRoleTitle}>
+                  {activeRoleConfig.title}
+                </Text>
                 <Text style={styles.dropdownRoleSubtitle} numberOfLines={1}>
                   {activeRoleConfig.subtitle}
                 </Text>
               </View>
 
-              <Ionicons name="chevron-down" size={20} color={COLORS.textSecondary} />
+              <Ionicons
+                name="chevron-down"
+                size={20}
+                color={COLORS.textSecondary}
+              />
             </TouchableOpacity>
           </View>
 
@@ -181,10 +212,16 @@ export default function RegisterScreen() {
               value={fullName}
               onChangeText={(t) => {
                 setFullName(t);
-                if (errors.fullName) setErrors({ ...errors, fullName: '' });
+                if (errors.fullName) setErrors({ ...errors, fullName: "" });
               }}
               error={errors.fullName}
-              leftIcon={<Ionicons name="person-outline" size={20} color={COLORS.textMuted} />}
+              leftIcon={
+                <Ionicons
+                  name="person-outline"
+                  size={20}
+                  color={COLORS.textMuted}
+                />
+              }
             />
 
             <Input
@@ -193,12 +230,18 @@ export default function RegisterScreen() {
               value={email}
               onChangeText={(t) => {
                 setEmail(t);
-                if (errors.email) setErrors({ ...errors, email: '' });
+                if (errors.email) setErrors({ ...errors, email: "" });
               }}
               error={errors.email}
               autoCapitalize="none"
               keyboardType="email-address"
-              leftIcon={<Ionicons name="mail-outline" size={20} color={COLORS.textMuted} />}
+              leftIcon={
+                <Ionicons
+                  name="mail-outline"
+                  size={20}
+                  color={COLORS.textMuted}
+                />
+              }
             />
 
             <Input
@@ -207,13 +250,36 @@ export default function RegisterScreen() {
               value={phone}
               onChangeText={(t) => {
                 setPhone(t);
-                if (errors.phone) setErrors({ ...errors, phone: '' });
+                if (errors.phone) setErrors({ ...errors, phone: "" });
               }}
               error={errors.phone}
               keyboardType="phone-pad"
               helperText="Active mobile number for transactions and notifications."
-              leftIcon={<Ionicons name="call-outline" size={20} color={COLORS.textMuted} />}
+              leftIcon={
+                <Ionicons
+                  name="call-outline"
+                  size={20}
+                  color={COLORS.textMuted}
+                />
+              }
             />
+
+            {(selectedRole === 'surveyor' || selectedRole === 'advisor') && (
+              <Input
+                label="Professional Profile Image URL (Optional)"
+                placeholder="e.g. https://images.unsplash.com/..."
+                value={avatarUrl}
+                onChangeText={setAvatarUrl}
+                helperText="Leave empty to use the default professional avatar."
+                leftIcon={
+                  <Ionicons
+                    name="image-outline"
+                    size={20}
+                    color={COLORS.textMuted}
+                  />
+                }
+              />
+            )}
 
             <Input
               label="Password *"
@@ -221,11 +287,17 @@ export default function RegisterScreen() {
               value={password}
               onChangeText={(t) => {
                 setPassword(t);
-                if (errors.password) setErrors({ ...errors, password: '' });
+                if (errors.password) setErrors({ ...errors, password: "" });
               }}
               error={errors.password}
               isPassword
-              leftIcon={<Ionicons name="lock-closed-outline" size={20} color={COLORS.textMuted} />}
+              leftIcon={
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={20}
+                  color={COLORS.textMuted}
+                />
+              }
             />
 
             <Input
@@ -234,11 +306,18 @@ export default function RegisterScreen() {
               value={confirmPassword}
               onChangeText={(t) => {
                 setConfirmPassword(t);
-                if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: '' });
+                if (errors.confirmPassword)
+                  setErrors({ ...errors, confirmPassword: "" });
               }}
               error={errors.confirmPassword}
               isPassword
-              leftIcon={<Ionicons name="lock-closed-outline" size={20} color={COLORS.textMuted} />}
+              leftIcon={
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={20}
+                  color={COLORS.textMuted}
+                />
+              }
             />
 
             <Button
@@ -248,47 +327,18 @@ export default function RegisterScreen() {
               size="lg"
               loading={loading}
               fullWidth
-              style={styles.submitBtn}
+              style={[styles.submitBtn, { backgroundColor: activeRoleConfig.badgeColor }]}
             />
 
             <View style={styles.loginPromptRow}>
               <Text style={styles.promptText}>Already registered? </Text>
-              <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
+              <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
                 <Text style={styles.loginLink}>Sign In</Text>
               </TouchableOpacity>
             </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-
-      {/* Success Modal */}
-      <Modal
-        visible={showSuccessModal}
-        transparent
-        animationType="slide"
-      >
-        <SafeAreaView style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
-            <View style={{ alignItems: 'center', marginBottom: SPACING.lg }}>
-              <Ionicons name="checkmark-circle" size={60} color={COLORS.success} />
-              <Text style={[styles.modalTitle, { marginTop: SPACING.md, textAlign: 'center' }]}>Account Created Successfully</Text>
-              <Text style={[styles.modalSubtitle, { textAlign: 'center', marginTop: SPACING.sm }]}>
-                Welcome to TerraVerify! Your account has been activated as {activeRoleConfig.title}.
-              </Text>
-            </View>
-            <Button
-              title="Enter Platform"
-              onPress={() => {
-                setShowSuccessModal(false);
-                router.replace('/(tabs)');
-              }}
-              variant="primary"
-              size="lg"
-              fullWidth
-            />
-          </View>
-        </SafeAreaView>
-      </Modal>
 
       {/* Role Picker Modal Dropdown */}
       <Modal
@@ -316,7 +366,11 @@ export default function RegisterScreen() {
                 onPress={() => setIsDropdownOpen(false)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Ionicons name="close-circle" size={26} color={COLORS.textMuted} />
+                <Ionicons
+                  name="close-circle"
+                  size={26}
+                  color={COLORS.textMuted}
+                />
               </TouchableOpacity>
             </View>
 
@@ -327,23 +381,47 @@ export default function RegisterScreen() {
                   <TouchableOpacity
                     key={item.role}
                     activeOpacity={0.7}
-                    style={[styles.roleOptionCard, isSelected && styles.roleOptionCardSelected]}
+                    style={[
+                      styles.roleOptionCard,
+                      isSelected && styles.roleOptionCardSelected,
+                    ]}
                     onPress={() => {
                       setSelectedRole(item.role);
                       setIsDropdownOpen(false);
                     }}
                   >
-                    <View style={[styles.optionIconCircle, { backgroundColor: `${item.badgeColor}18` }]}>
-                      <Ionicons name={item.icon} size={22} color={item.badgeColor} />
+                    <View
+                      style={[
+                        styles.optionIconCircle,
+                        { backgroundColor: `${item.badgeColor}18` },
+                      ]}
+                    >
+                      <Ionicons
+                        name={item.icon}
+                        size={22}
+                        color={item.badgeColor}
+                      />
                     </View>
 
                     <View style={{ flex: 1 }}>
                       <View style={styles.optionTitleRow}>
-                        <Text style={[styles.optionTitle, isSelected && { color: COLORS.primary, fontWeight: '700' }]}>
+                        <Text
+                          style={[
+                            styles.optionTitle,
+                            isSelected && {
+                              color: COLORS.primary,
+                              fontWeight: "700",
+                            },
+                          ]}
+                        >
                           {item.title}
                         </Text>
                         {isSelected && (
-                          <Ionicons name="checkmark-circle" size={18} color={COLORS.secondary} />
+                          <Ionicons
+                            name="checkmark-circle"
+                            size={18}
+                            color={COLORS.secondary}
+                          />
                         )}
                       </View>
                       <Text style={styles.optionSubtitle}>{item.subtitle}</Text>
@@ -371,7 +449,7 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     marginBottom: SPACING.lg,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   titleSection: {
     marginBottom: SPACING.xl,
@@ -395,8 +473,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
   },
   dropdownSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: COLORS.background,
     borderWidth: 1.5,
     borderColor: COLORS.secondary,
@@ -408,8 +486,8 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   dropdownTextCol: {
     flex: 1,
@@ -425,15 +503,21 @@ const styles = StyleSheet.create({
   },
   form: {
     marginBottom: SPACING.xl,
+    backgroundColor: '#FFFFFF',
+    padding: SPACING.lg,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.sm,
   },
   submitBtn: {
-    marginTop: SPACING.md,
+    marginTop: SPACING.lg,
     marginBottom: SPACING.lg,
   },
   loginPromptRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
   },
   promptText: {
     ...TYPOGRAPHY.body,
@@ -445,7 +529,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: "flex-end",
     backgroundColor: COLORS.overlay,
   },
   modalBackdrop: {
@@ -459,9 +543,9 @@ const styles = StyleSheet.create({
     ...SHADOWS.lg,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: SPACING.lg,
     paddingBottom: SPACING.md,
     borderBottomWidth: 1,
@@ -481,13 +565,13 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   roleOptionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.md,
     padding: SPACING.md,
     borderWidth: 1.5,
-    borderColor: 'transparent',
+    borderColor: "transparent",
     gap: SPACING.md,
   },
   roleOptionCardSelected: {
@@ -498,13 +582,13 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   optionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   optionTitle: {
     ...TYPOGRAPHY.bodyBold,

@@ -75,7 +75,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
         </View>
 
         <Text style={styles.title} numberOfLines={2}>
-          {land.title}
+          {land.title.replace(/\((LT|TF)[^)]+\)/i, '(***-PROTECTED)')}
         </Text>
 
         {/* Specs Pill Badges */}
@@ -87,7 +87,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
           <View style={styles.specDivider} />
           <View style={styles.specItem}>
             <Ionicons name="document-text-outline" size={13} color={COLORS.textSecondary} />
-            <Text style={styles.specText}>{land.landTitleNumber}</Text>
+            <Text style={styles.specText}>TF-***-PROTECTED</Text>
           </View>
         </View>
 

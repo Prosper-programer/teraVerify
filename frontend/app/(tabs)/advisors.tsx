@@ -8,21 +8,27 @@ import {
   Image,
   RefreshControl,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, RADIUS, TYPOGRAPHY, SHADOWS } from '../../src/constants/theme';
 import { useAppointment } from '../../src/store/AppointmentContext';
 import { Button } from '../../src/components/common/Button';
 import { formatFCFA } from '../../src/constants/cameroonData';
+import { useLanguage } from '../../src/store/LanguageContext';
+import { useProtectedAction } from '../../src/utils/useProtectedAction';
 
 export default function AdvisorsScreen() {
   const router = useRouter();
   const { advisors, appointments, isLoading, refreshAppointments } = useAppointment();
   const [activeTab, setActiveTab] = useState<'advisors' | 'my_appointments'>('advisors');
+  const { language, toggleLanguage, t } = useLanguage();
+  const { requireAuth } = useProtectedAction();
+
+  const insets = useSafeAreaInsets();
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <View style={[styles.safeArea, { paddingTop: Math.max(insets.top + 10, 40) }]}>
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
@@ -31,11 +37,21 @@ export default function AdvisorsScreen() {
       >
       {/* Screen Header */}
       <View style={styles.header}>
-        <Text style={styles.headerBadge}>OFFICIAL ADVISORY NETWORK</Text>
-        <Text style={styles.headerTitle}>Professional Guidance</Text>
-        <Text style={styles.headerSubtitle}>
-          Consult registered notaries, boundary surveyors, and legal conveyancers on Cameroon land regulations.
-        </Text>
+        <View style={styles.headerTopRow}>
+          <Text style={styles.headerBadge}>{t('advisor.badge')}</Text>
+          <TouchableOpacity
+            style={styles.langBtn}
+            onPress={toggleLanguage}
+            activeOpacity={0.7}
+          >
+            <Text style={{ fontSize: 14, marginRight: 4 }}>
+              {language === 'EN' ? '🇬🇧' : '🇫🇷'}
+            </Text>
+            <Text style={styles.langBtnText}>{language}</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.headerTitle}>{t('advisor.title')}</Text>
+        <Text style={styles.headerSubtitle}>{t('advisor.subtitle')}</Text>
       </View>
 
       {/* Tabs */}
@@ -45,16 +61,16 @@ export default function AdvisorsScreen() {
           onPress={() => setActiveTab('advisors')}
         >
           <Text style={[styles.tabText, activeTab === 'advisors' && styles.tabTextActive]}>
-            Find an Advisor ({advisors.length})
+            {t('advisor.findTab')} ({advisors.length})
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.tabBtn, activeTab === 'my_appointments' && styles.tabBtnActive]}
-          onPress={() => setActiveTab('my_appointments')}
+          onPress={() => requireAuth(() => setActiveTab('my_appointments'))}
         >
           <Text style={[styles.tabText, activeTab === 'my_appointments' && styles.tabTextActive]}>
-            My Consultations ({appointments.length})
+            {t('advisor.myTab')} ({appointments.length})
           </Text>
         </TouchableOpacity>
       </View>
@@ -65,18 +81,24 @@ export default function AdvisorsScreen() {
           {advisors.map((advisor) => (
             <View key={advisor.id} style={styles.advisorCard}>
               <View style={styles.cardTop}>
-                <Image source={{ uri: advisor.avatarUrl }} style={styles.avatar} />
+                {advisor.avatarUrl ? (
+                  <Image source={{ uri: advisor.avatarUrl }} style={styles.avatar} />
+                ) : (
+                  <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
+                    <Ionicons name="person" size={24} color={COLORS.primary} />
+                  </View>
+                )}
                 <View style={styles.advisorInfo}>
                   <View style={styles.ratingRow}>
                     <Ionicons name="star" size={13} color="#EAB308" />
                     <Text style={styles.ratingText}>
-                      {advisor.rating} ({advisor.reviewCount} reviews)
+                      {advisor.rating} ({advisor.reviewCount} {t('advisor.reviews')})
                     </Text>
                   </View>
-                  <Text style={styles.name}>{advisor.fullName}</Text>
-                  <Text style={styles.roleTitle}>{advisor.roleTitle}</Text>
+                  <Text style={styles.name}>{advisor.name}</Text>
+                  <Text style={styles.roleTitle}>{advisor.title}</Text>
                   <Text style={styles.location}>
-                    <Ionicons name="location-outline" size={12} color={COLORS.textSecondary} /> {advisor.location} • {advisor.yearsOfExperience} yrs exp.
+                    <Ionicons name="location-outline" size={12} color={COLORS.textSecondary} /> {advisor.city}, {advisor.region}
                   </Text>
                 </View>
               </View>
@@ -85,9 +107,9 @@ export default function AdvisorsScreen() {
                 {advisor.bio}
               </Text>
 
-              {/* Specialties */}
+              {/* Specializations */}
               <View style={styles.specialtiesRow}>
-                {advisor.specialties.map((spec, i) => (
+                {(advisor.specializations || []).map((spec, i) => (
                   <View key={i} style={styles.specChip}>
                     <Text style={styles.specText}>{spec}</Text>
                   </View>
@@ -97,16 +119,18 @@ export default function AdvisorsScreen() {
               {/* Fee & Booking Button */}
               <View style={styles.cardFooter}>
                 <View>
-                  <Text style={styles.feeLabel}>Consultation Fee</Text>
-                  <Text style={styles.feeAmount}>{formatFCFA(advisor.consultationFeeFCFA)}</Text>
+                  <Text style={styles.feeLabel}>{t('advisor.fee')}</Text>
+                  <Text style={styles.feeAmount}>{formatFCFA(advisor.hourlyRateFCFA)}</Text>
                 </View>
                 <Button
-                  title="Book Appointment"
+                  title={t('advisor.bookBtn')}
                   onPress={() =>
-                    router.push({
-                      pathname: '/advisor/book',
-                      params: { advisorId: advisor.id },
-                    })
+                    requireAuth(() =>
+                      router.push({
+                        pathname: '/advisor/book',
+                        params: { advisorId: advisor.id },
+                      })
+                    )
                   }
                   variant="primary"
                   size="sm"
@@ -122,10 +146,8 @@ export default function AdvisorsScreen() {
           {appointments.length === 0 ? (
             <View style={styles.emptyCard}>
               <Ionicons name="calendar-outline" size={32} color={COLORS.textMuted} />
-              <Text style={styles.emptyTitle}>No Scheduled Consultations</Text>
-              <Text style={styles.emptyDesc}>
-                Select an advisor above to book a formal session regarding land titling procedures.
-              </Text>
+              <Text style={styles.emptyTitle}>{t('advisor.noApt')}</Text>
+              <Text style={styles.emptyDesc}>{t('advisor.noAptDesc')}</Text>
             </View>
           ) : (
             appointments.map((apt) => (
@@ -147,7 +169,7 @@ export default function AdvisorsScreen() {
                   </Text>
                 </View>
 
-                <Text style={styles.aptTopicLabel}>Session Subject:</Text>
+                <Text style={styles.aptTopicLabel}>{t('advisor.subject')}</Text>
                 <Text style={styles.aptTopic}>{apt.topic}</Text>
 
                 {apt.notes && (
@@ -161,7 +183,7 @@ export default function AdvisorsScreen() {
         </View>
       )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -181,6 +203,27 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: SPACING.lg,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  langBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: RADIUS.round,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  langBtnText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.primary,
   },
   headerBadge: {
     ...TYPOGRAPHY.micro,

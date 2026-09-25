@@ -23,9 +23,10 @@ import { formatFCFA } from '../../src/constants/cameroonData';
 
 export default function PaymentScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, type = 'unlock', fee = '10000', returnUrl, date, slot, topic } = useLocalSearchParams<{ id: string, type?: 'unlock' | 'subscribe' | 'advisor', fee?: string, returnUrl?: string, date?: string, slot?: string, topic?: string }>();
   const { getLandById, unlockLand } = useLand();
-  const { currentUser } = useAuth();
+  const { currentUser, subscribe } = useAuth(); // subscribe was added previously
+  const { bookAppointment, advisors } = require('../../src/store/AppointmentContext').useAppointment();
 
   const [land, setLand] = useState<LandListing | null>(null);
   const [method, setMethod] = useState<PaymentMethod>('mtn_momo');
@@ -36,7 +37,7 @@ export default function PaymentScreen() {
 
   useEffect(() => {
     async function load() {
-      if (id) {
+      if (type === 'unlock' && id) {
         const found = await getLandById(id);
         setLand(found);
       }
@@ -44,7 +45,7 @@ export default function PaymentScreen() {
     load();
     // Default preset phone
     setPhoneNumber('677458921');
-  }, [id, getLandById]);
+  }, [id, type, getLandById]);
 
   const handlePay = async () => {
     setPhoneError(undefined);
@@ -54,22 +55,42 @@ export default function PaymentScreen() {
       return;
     }
 
-    if (!land) return;
+    if (type === 'unlock' && !land) return;
 
     try {
       setStatus('processing');
-      const tx = await paymentService.processUnlockPayment({
-        userId: currentUser?.id || 'user-buyer-01',
-        landId: land.id,
-        landTitle: land.title,
-        amountFCFA: land.unlockFeeFCFA,
-        method,
-        phoneNumber,
-      });
+      
+      // Simulate backend delay for demonstration (since user said "we are just going to simulate this process")
+      await new Promise(res => setTimeout(res, 2000));
+      
+      if (type === 'unlock' && land) {
+        await paymentService.processUnlockPayment({
+          userId: currentUser?.id || 'user-buyer-01',
+          landId: land.id,
+          landTitle: land.title,
+          amountFCFA: land.unlockFeeFCFA,
+          method,
+          phoneNumber,
+        });
+        await unlockLand(land.id);
+      } else if (type === 'subscribe') {
+        if (currentUser) await subscribe();
+      } else if (type === 'advisor') {
+        const adv = advisors?.find((a: any) => a.id === id);
+        if (adv && date && slot && topic) {
+          await bookAppointment({
+            advisorId: adv.id,
+            advisorName: adv.name,
+            advisorRole: adv.title,
+            date: date,
+            timeSlot: slot,
+            topic: topic,
+            feeFCFA: adv.hourlyRateFCFA,
+          });
+        }
+      }
 
-      // Update local reactive store
-      await unlockLand(land.id);
-      setTransactionRef(tx.reference);
+      setTransactionRef('TX-' + Date.now());
       setStatus('success');
     } catch (err: any) {
       setStatus('failed');
@@ -78,8 +99,14 @@ export default function PaymentScreen() {
   };
 
   const handleFinish = () => {
-    if (land) {
+    if (returnUrl) {
+      router.replace(returnUrl as any);
+    } else if (type === 'unlock' && land) {
       router.replace(`/property/${land.id}`);
+    } else if (type === 'subscribe') {
+      router.replace('/property/verify-title');
+    } else if (type === 'advisor') {
+      router.replace('/(tabs)/advisors');
     } else if (router.canGoBack()) {
       router.back();
     } else {
@@ -95,12 +122,51 @@ export default function PaymentScreen() {
     }
   };
 
-  if (!land) {
+  if (type === 'unlock' && !land) {
     return (
       <SafeAreaView style={styles.container}>
         <ActivityIndicator size="large" color={COLORS.secondary} style={{ marginTop: 60 }} />
       </SafeAreaView>
     );
+  }
+
+  // Dynamic Content based on Type
+  let headerText = 'Secure Payment';
+  let titleText = '';
+  let subText = '';
+  let feeLabel = '';
+  let amountVal = Number(fee) || 0;
+
+  if (type === 'unlock' && land) {
+    headerText = 'Unlock Property Dossier';
+    titleText = land.title;
+    subText = `Title Number: ${land.landTitleNumber} • ${land.neighborhood}`;
+    feeLabel = 'Dossier Unlock Fee';
+    amountVal = land.unlockFeeFCFA;
+  } else if (type === 'subscribe') {
+    headerText = 'Premium Subscription';
+    titleText = 'TerraVerify Premium Subscription';
+    subText = 'Unlock the ability to check verification statuses directly from the cadastral archives.';
+    feeLabel = 'Monthly Subscription Fee';
+  } else if (type === 'advisor') {
+    headerText = 'Book Consultation';
+    titleText = 'Advisor Consultation Fee';
+    subText = 'Secure your appointment slot with a certified cadastral expert.';
+    feeLabel = 'Consultation Fee';
+  }
+
+  let securityText = 'Encrypted mobile money checkout. Unlocks permanent access to seller coordinates & certified deed scans for this account.';
+  if (type === 'subscribe') {
+    securityText = 'Encrypted mobile money checkout. Unlocks the ability to verify land titles directly from the cadastral archives.';
+  } else if (type === 'advisor') {
+    securityText = 'Encrypted mobile money checkout. Your appointment slot will be confirmed upon successful payment.';
+  }
+
+  let successText = 'Access granted. All seller contacts, GPS landmarks, and cadastral documents are now unlocked.';
+  if (type === 'subscribe') {
+    successText = 'Subscription activated! You can now verify land titles directly from the cadastral archives.';
+  } else if (type === 'advisor') {
+    successText = 'Appointment confirmed! The advisor will reach out to you shortly.';
   }
 
   return (
@@ -113,7 +179,7 @@ export default function PaymentScreen() {
         >
           <Ionicons name="close" size={24} color={COLORS.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Unlock Property Dossier</Text>
+        <Text style={styles.headerTitle}>{headerText}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -126,14 +192,14 @@ export default function PaymentScreen() {
             {/* Property Summary Strip */}
             <View style={styles.summaryCard}>
               <Text style={styles.summaryTitle} numberOfLines={1}>
-                {land.title}
+                {titleText}
               </Text>
               <Text style={styles.summarySub}>
-                Title Number: <Text style={{ fontWeight: '700' }}>{land.landTitleNumber}</Text> • {land.neighborhood}
+                {subText}
               </Text>
               <View style={styles.amountRow}>
-                <Text style={styles.amountLabel}>Dossier Unlock Fee</Text>
-                <Text style={styles.amountValue}>{formatFCFA(land.unlockFeeFCFA)}</Text>
+                <Text style={styles.amountLabel}>{feeLabel}</Text>
+                <Text style={styles.amountValue}>{formatFCFA(amountVal)}</Text>
               </View>
             </View>
 
@@ -210,12 +276,12 @@ export default function PaymentScreen() {
             <View style={styles.securityBox}>
               <Ionicons name="shield-checkmark" size={18} color={COLORS.success} />
               <Text style={styles.securityText}>
-                Encrypted mobile money checkout. Unlocks permanent access to seller coordinates & certified deed scans for this account.
+                {securityText}
               </Text>
             </View>
 
             <Button
-              title={`Pay ${formatFCFA(land.unlockFeeFCFA)}`}
+              title={`Pay ${formatFCFA(amountVal)}`}
               onPress={handlePay}
               variant="primary"
               size="lg"
@@ -249,7 +315,7 @@ export default function PaymentScreen() {
             </View>
             <Text style={styles.stateHeading}>Payment Successful!</Text>
             <Text style={styles.stateSubtitle}>
-              Access granted. All seller contacts, GPS landmarks, and cadastral documents are now unlocked.
+              {successText}
             </Text>
 
             <View style={styles.receiptBox}>
@@ -259,7 +325,7 @@ export default function PaymentScreen() {
               </View>
               <View style={styles.receiptRow}>
                 <Text style={styles.receiptLabel}>Amount Debited</Text>
-                <Text style={styles.receiptValue}>{formatFCFA(land.unlockFeeFCFA)}</Text>
+                <Text style={styles.receiptValue}>{formatFCFA(amountVal)}</Text>
               </View>
               <View style={styles.receiptRow}>
                 <Text style={styles.receiptLabel}>Provider</Text>

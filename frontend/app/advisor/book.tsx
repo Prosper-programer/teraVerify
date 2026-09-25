@@ -63,31 +63,19 @@ export default function BookAdvisorScreen() {
     if (!advisor) return;
 
     try {
-      setLoading(true);
-      await bookAppointment({
-        advisorId: advisor.id,
-        advisorName: advisor.fullName,
-        advisorRole: advisor.roleTitle,
-        date: selectedDate,
-        timeSlot: selectedSlot,
-        topic: topic.trim(),
-        feeFCFA: advisor.consultationFeeFCFA,
+      router.push({
+        pathname: '/payment/[id]',
+        params: {
+          id: advisor.id,
+          type: 'advisor',
+          fee: advisor.hourlyRateFCFA.toString(),
+          date: selectedDate,
+          slot: selectedSlot,
+          topic: topic.trim(),
+        }
       });
-
-      Alert.alert(
-        'Appointment Confirmed',
-        `Your consultation session with ${advisor.fullName} has been scheduled for ${selectedDate} at ${selectedSlot}.`,
-        [
-          {
-            text: 'View My Consultations',
-            onPress: () => router.replace('/(tabs)/advisors'),
-          },
-        ]
-      );
     } catch (err: any) {
-      Alert.alert('Booking Error', err.message || 'Could not schedule appointment.');
-    } finally {
-      setLoading(false);
+      Alert.alert('Navigation Error', err.message);
     }
   };
 
@@ -114,13 +102,13 @@ export default function BookAdvisorScreen() {
         <View style={styles.advisorCard}>
           <Image source={{ uri: advisor.avatarUrl }} style={styles.avatar} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.advisorName}>{advisor.fullName}</Text>
-            <Text style={styles.advisorRole}>{advisor.roleTitle}</Text>
+            <Text style={styles.advisorName}>{advisor.name}</Text>
+            <Text style={styles.advisorRole}>{advisor.title}</Text>
             <Text style={styles.advisorMeta}>
-              {advisor.location} • {advisor.yearsOfExperience} yrs exp.
+              {advisor.city}, {advisor.region}
             </Text>
             <Text style={styles.feeText}>
-              Fee: <Text style={styles.feeBold}>{formatFCFA(advisor.consultationFeeFCFA)}</Text>
+              Fee: <Text style={styles.feeBold}>{formatFCFA(advisor.hourlyRateFCFA)}</Text>
             </Text>
           </View>
         </View>
@@ -191,7 +179,7 @@ export default function BookAdvisorScreen() {
       <SafeAreaView style={styles.bottomBar}>
         <View>
           <Text style={styles.bottomBarLabel}>Total Session Fee</Text>
-          <Text style={styles.bottomBarPrice}>{formatFCFA(advisor.consultationFeeFCFA)}</Text>
+          <Text style={styles.bottomBarPrice}>{formatFCFA(advisor.hourlyRateFCFA)}</Text>
         </View>
         <Button
           title="Confirm Booking"

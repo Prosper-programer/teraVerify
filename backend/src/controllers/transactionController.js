@@ -3,7 +3,13 @@ const { pool } = require('../config/db');
 // GET /api/transactions
 async function getAllTransactions(req, res) {
   try {
-    const [rows] = await pool.query('SELECT * FROM transactions ORDER BY timestamp DESC');
+    let query = 'SELECT * FROM transactions ORDER BY timestamp DESC';
+    let params = [];
+    if (req.user.role !== 'admin') {
+      query = 'SELECT * FROM transactions WHERE user_id = ? ORDER BY timestamp DESC';
+      params.push(req.user.id);
+    }
+    const [rows] = await pool.query(query, params);
     const mapped = rows.map((t) => ({
       id: t.id,
       reference: t.reference,

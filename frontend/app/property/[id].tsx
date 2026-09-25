@@ -24,6 +24,7 @@ import { DocumentCard } from '../../src/components/property/DocumentCard';
 import { formatFCFA, formatArea } from '../../src/constants/cameroonData';
 import { Button } from '../../src/components/common/Button';
 import { CadastralCertificateModal } from '../../src/components/property/CadastralCertificateModal';
+import { useProtectedAction } from '../../src/utils/useProtectedAction';
 
 const { width } = Dimensions.get('window');
 
@@ -32,6 +33,7 @@ export default function PropertyDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getLandById, isLandUnlocked, savedLandIds, toggleSaveLand } = useLand();
   const { currentUser } = useAuth();
+  const { requireAuth } = useProtectedAction();
 
   const [land, setLand] = useState<LandListing | null>(null);
   const [unlocked, setUnlocked] = useState(false);
@@ -98,13 +100,15 @@ export default function PropertyDetailScreen() {
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Gallery Image Carousel */}
+        {/* Gallery Image Carousel - Immersive */}
         <View style={styles.galleryContainer}>
           <Image
             source={{ uri: land.images[activeImageIndex] || land.images[0] }}
             style={styles.heroImage}
             resizeMode="cover"
           />
+          {/* Gradient Overlay for text readability at bottom of image */}
+          <View style={styles.heroGradient} />
 
           {/* Top Floating Buttons */}
           <SafeAreaView style={styles.imageOverlayTop}>
@@ -113,7 +117,7 @@ export default function PropertyDetailScreen() {
               onPress={handleSafeBack}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="arrow-back" size={20} color={COLORS.primary} />
+              <Ionicons name="chevron-back" size={24} color="#000000" />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -123,15 +127,29 @@ export default function PropertyDetailScreen() {
             >
               <Ionicons
                 name={isSaved ? 'heart' : 'heart-outline'}
-                size={20}
-                color={isSaved ? COLORS.error : COLORS.primary}
+                size={22}
+                color={isSaved ? '#EF4444' : '#000000'}
               />
             </TouchableOpacity>
           </SafeAreaView>
 
-          {/* Status Badge Tag */}
-          <View style={styles.imageOverlayBadge}>
-            <StatusBadge status={land.verificationStatus} size="md" />
+          {/* Bottom Title overlaid on image */}
+          <View style={styles.heroTextContainer}>
+            <View style={styles.heroBadgeRow}>
+              <StatusBadge status={land.verificationStatus} size="md" />
+              <View style={styles.heroPriceBadge}>
+                <Text style={styles.heroPriceText}>{formatFCFA(land.priceFCFA)}</Text>
+              </View>
+            </View>
+            <Text style={styles.heroTitle}>
+              {showFullDetails ? land.title : land.title.replace(/\((LT|TF)[^)]+\)/i, '(***-PROTECTED)')}
+            </Text>
+            <View style={styles.heroLocationRow}>
+              <Ionicons name="location" size={16} color="#FFFFFF" />
+              <Text style={styles.heroLocationText}>
+                {land.neighborhood}, {land.subdivision} • {land.region}
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -148,8 +166,10 @@ export default function PropertyDetailScreen() {
                 key={i}
                 onPress={() => setActiveImageIndex(i)}
                 style={[styles.thumbWrapper, activeImageIndex === i && styles.thumbWrapperActive]}
+                activeOpacity={0.8}
               >
                 <Image source={{ uri: img }} style={styles.thumbImage} />
+                {activeImageIndex !== i && <View style={styles.thumbOverlay} />}
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -157,44 +177,37 @@ export default function PropertyDetailScreen() {
 
         {/* Body Content */}
         <View style={styles.body}>
-          {/* Location & Title */}
-          <View style={styles.locationRow}>
-            <Ionicons name="location-sharp" size={15} color={COLORS.secondary} />
-            <Text style={styles.locationText}>
-              {land.neighborhood}, {land.subdivision} • {land.region} Region
-            </Text>
-          </View>
 
-          <Text style={styles.title}>{land.title}</Text>
-
-          {/* Price & Asking info */}
-          <View style={styles.priceContainer}>
-            <Text style={styles.priceLabel}>Verified Asking Price</Text>
-            <Text style={styles.priceValue}>{formatFCFA(land.priceFCFA)}</Text>
-          </View>
-
-          {/* Key Specs Grid */}
+          {/* Key Specs Grid - Premium Soft Cards */}
           <View style={styles.specsGrid}>
             <View style={styles.specBox}>
-              <Ionicons name="resize-outline" size={18} color={COLORS.secondary} />
+              <View style={[styles.specIconCircle, { backgroundColor: '#E0F2FE' }]}>
+                <Ionicons name="resize-outline" size={18} color="#0284C7" />
+              </View>
               <Text style={styles.specBoxValue}>{formatArea(land.areaSqM)}</Text>
               <Text style={styles.specBoxLabel}>Surface Area</Text>
             </View>
 
             <View style={styles.specBox}>
-              <Ionicons name="document-text-outline" size={18} color={COLORS.secondary} />
-              <Text style={styles.specBoxValue}>{land.landTitleNumber}</Text>
+              <View style={[styles.specIconCircle, { backgroundColor: '#ECFDF5' }]}>
+                <Ionicons name="document-text-outline" size={18} color="#059669" />
+              </View>
+              <Text style={styles.specBoxValue}>{showFullDetails ? land.landTitleNumber : 'TF-***-PROTECTED'}</Text>
               <Text style={styles.specBoxLabel}>Title Certificate</Text>
             </View>
 
             <View style={styles.specBox}>
-              <Ionicons name="navigate-outline" size={18} color={COLORS.secondary} />
+              <View style={[styles.specIconCircle, { backgroundColor: '#F3E8FF' }]}>
+                <Ionicons name="navigate-outline" size={18} color="#9333EA" />
+              </View>
               <Text style={styles.specBoxValue}>{land.accessRoad.toUpperCase()}</Text>
               <Text style={styles.specBoxLabel}>Road Access</Text>
             </View>
 
             <View style={styles.specBox}>
-              <Ionicons name="layers-outline" size={18} color={COLORS.secondary} />
+              <View style={[styles.specIconCircle, { backgroundColor: '#FFEDD5' }]}>
+                <Ionicons name="layers-outline" size={18} color="#EA580C" />
+              </View>
               <Text style={styles.specBoxValue}>{land.topography.toUpperCase()}</Text>
               <Text style={styles.specBoxLabel}>Topography</Text>
             </View>
@@ -206,27 +219,42 @@ export default function PropertyDetailScreen() {
             <Text style={styles.descriptionText}>{land.description}</Text>
           </View>
 
-          {/* Cadastral Surveyor Audit Report */}
+          {/* Cadastral Surveyor Audit Report - Premium Certificate Style */}
           {land.surveyorNotes && (
-            <View style={styles.surveyorAuditBox}>
-              <View style={styles.auditHeader}>
-                <Ionicons name="shield-checkmark" size={18} color={COLORS.success} />
-                <Text style={styles.auditTitle}>Cadastral Surveyor Verification Statement</Text>
+            <View style={styles.premiumAuditBox}>
+              <View style={styles.auditStampWatermark}>
+                <Ionicons name="ribbon" size={120} color="rgba(16, 185, 129, 0.05)" />
               </View>
-              <Text style={styles.auditText}>{land.surveyorNotes}</Text>
-              <Text style={styles.auditSign}>
-                Certified by Ing. Samuel Ewane (Order of Registered Surveyors of Cameroon)
-              </Text>
+              
+              <View style={styles.auditHeaderRow}>
+                <View style={styles.auditIconCircle}>
+                  <Ionicons name="checkmark-done" size={20} color="#059669" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.premiumAuditTitle}>Official Surveyor Audit</Text>
+                  <Text style={styles.premiumAuditSubtitle}>Cadastral Verification Passed</Text>
+                </View>
+              </View>
+              
+              <View style={styles.auditDivider} />
+              
+              <Text style={styles.premiumAuditText}>"{land.surveyorNotes}"</Text>
+              
+              <View style={styles.auditSignRow}>
+                <Ionicons name="pencil" size={14} color={COLORS.textMuted} />
+                <Text style={styles.premiumAuditSign}>
+                  Signed by Ing. Samuel Ewane
+                </Text>
+              </View>
 
               {/* View Official Certificate Button */}
               <TouchableOpacity
-                style={styles.viewCertActionBtn}
+                style={styles.premiumViewCertBtn}
                 onPress={() => setCertModalVisible(true)}
                 activeOpacity={0.8}
               >
-                <Ionicons name="ribbon-outline" size={18} color={COLORS.primary} style={{ marginRight: 6 }} />
-                <Text style={styles.viewCertActionText}>View Official Cadastral Certificate</Text>
-                <Ionicons name="chevron-forward" size={16} color={COLORS.primary} style={{ marginLeft: 4 }} />
+                <Text style={styles.premiumViewCertText}>View Digital Certificate</Text>
+                <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
           )}
@@ -300,7 +328,7 @@ export default function PropertyDetailScreen() {
             /* PRE-PAYMENT LOCKED VIEW */
             <LockedDetailsOverlay
               unlockFeeFCFA={land.unlockFeeFCFA}
-              onUnlockPress={() => router.push(`/payment/${land.id}`)}
+              onUnlockPress={() => requireAuth(() => router.push(`/payment/${land.id}`))}
             />
           )}
         </View>
@@ -324,7 +352,7 @@ export default function PropertyDetailScreen() {
         ) : (
           <Button
             title={`Unlock Details (${formatFCFA(land.unlockFeeFCFA)})`}
-            onPress={() => router.push(`/payment/${land.id}`)}
+            onPress={() => requireAuth(() => router.push(`/payment/${land.id}`))}
             variant="secondary"
             size="md"
             leftIcon={<Ionicons name="lock-open-outline" size={16} color="#FFFFFF" />}
@@ -337,6 +365,7 @@ export default function PropertyDetailScreen() {
         visible={certModalVisible}
         onClose={() => setCertModalVisible(false)}
         land={land}
+        isUnlocked={showFullDetails}
       />
     </View>
   );
@@ -346,23 +375,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.surface,
-  },
-  viewCertActionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
-    borderRadius: RADIUS.md,
-    paddingVertical: 10,
-    paddingHorizontal: SPACING.md,
-    marginTop: SPACING.md,
-  },
-  viewCertActionText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.primary,
   },
   notFoundContainer: {
     flex: 1,
@@ -380,7 +392,7 @@ const styles = StyleSheet.create({
   },
   galleryContainer: {
     width: '100%',
-    height: width * 0.75,
+    height: width, // Full square for immersive feel
     position: 'relative',
     backgroundColor: COLORS.surfaceSecondary,
   },
@@ -388,9 +400,18 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  heroGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 180,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    // In a real app, you'd use expo-linear-gradient, but an overlay works here
+  },
   imageOverlayTop: {
     position: 'absolute',
-    top: 50, // Below demo switcher
+    top: 50,
     left: SPACING.lg,
     right: SPACING.lg,
     flexDirection: 'row',
@@ -398,34 +419,70 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   floatingRoundBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     alignItems: 'center',
     justifyContent: 'center',
     ...SHADOWS.md,
   },
-  imageOverlayBadge: {
+  heroTextContainer: {
     position: 'absolute',
-    bottom: SPACING.md,
-    left: SPACING.md,
+    bottom: SPACING.xl,
+    left: SPACING.xl,
+    right: SPACING.xl,
+    zIndex: 5,
+  },
+  heroBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.sm,
+  },
+  heroPriceBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: RADIUS.round,
+  },
+  heroPriceText: {
+    ...TYPOGRAPHY.bodyBold,
+    color: COLORS.primary,
+  },
+  heroTitle: {
+    ...TYPOGRAPHY.h1,
+    color: '#FFFFFF',
+    marginBottom: 6,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  heroLocationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  heroLocationText: {
+    ...TYPOGRAPHY.captionMedium,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginLeft: 4,
   },
   thumbsScroll: {
     backgroundColor: COLORS.surface,
-    paddingVertical: SPACING.sm,
+    paddingVertical: SPACING.md,
   },
   thumbsContent: {
-    paddingHorizontal: SPACING.lg,
+    paddingHorizontal: SPACING.xl,
     gap: SPACING.sm,
   },
   thumbWrapper: {
-    width: 60,
-    height: 44,
-    borderRadius: RADIUS.xs,
+    width: 64,
+    height: 48,
+    borderRadius: RADIUS.sm,
     overflow: 'hidden',
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    position: 'relative',
   },
   thumbWrapperActive: {
     borderColor: COLORS.secondary,
@@ -434,39 +491,13 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  thumbOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+  },
   body: {
     paddingHorizontal: SPACING.xl,
     paddingTop: SPACING.lg,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: SPACING.xs,
-  },
-  locationText: {
-    ...TYPOGRAPHY.captionMedium,
-    color: COLORS.secondary,
-    marginLeft: 4,
-  },
-  title: {
-    ...TYPOGRAPHY.h1,
-    color: COLORS.primary,
-    marginBottom: SPACING.md,
-  },
-  priceContainer: {
-    backgroundColor: COLORS.background,
-    padding: SPACING.md,
-    borderRadius: RADIUS.md,
-    marginBottom: SPACING.lg,
-  },
-  priceLabel: {
-    ...TYPOGRAPHY.micro,
-    color: COLORS.textMuted,
-  },
-  priceValue: {
-    ...TYPOGRAPHY.h1,
-    color: COLORS.primary,
-    marginTop: 2,
   },
   specsGrid: {
     flexDirection: 'row',
@@ -476,11 +507,17 @@ const styles = StyleSheet.create({
   },
   specBox: {
     width: (width - SPACING.xl * 2 - SPACING.sm) / 2,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#F8FAFC',
     padding: SPACING.md,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    borderRadius: RADIUS.lg,
+  },
+  specIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.sm,
   },
   specBoxValue: {
     ...TYPOGRAPHY.bodyBold,
@@ -506,33 +543,78 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     lineHeight: 22,
   },
-  surveyorAuditBox: {
-    backgroundColor: COLORS.successLight,
-    borderWidth: 1,
-    borderColor: COLORS.successBorder,
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
+  premiumAuditBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
     marginBottom: SPACING.xl,
+    borderWidth: 1.5,
+    borderColor: '#10B981', // Success green border
+    position: 'relative',
+    overflow: 'hidden',
   },
-  auditHeader: {
+  auditStampWatermark: {
+    position: 'absolute',
+    top: -20,
+    right: -20,
+    transform: [{ rotate: '-15deg' }],
+  },
+  auditHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 4,
+    marginBottom: SPACING.md,
   },
-  auditTitle: {
+  auditIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#D1FAE5', // Light green
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.sm,
+  },
+  premiumAuditTitle: {
+    ...TYPOGRAPHY.h3,
+    color: '#065F46', // Dark green
+  },
+  premiumAuditSubtitle: {
     ...TYPOGRAPHY.captionBold,
-    color: COLORS.success,
+    color: '#10B981',
   },
-  auditText: {
+  auditDivider: {
+    height: 1,
+    backgroundColor: '#E2E8F0',
+    marginBottom: SPACING.md,
+  },
+  premiumAuditText: {
     ...TYPOGRAPHY.body,
     color: COLORS.textPrimary,
-    marginBottom: 6,
-  },
-  auditSign: {
-    ...TYPOGRAPHY.micro,
-    color: COLORS.textSecondary,
     fontStyle: 'italic',
+    lineHeight: 22,
+    marginBottom: SPACING.md,
+  },
+  auditSignRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.lg,
+  },
+  premiumAuditSign: {
+    ...TYPOGRAPHY.captionMedium,
+    color: COLORS.textMuted,
+    marginLeft: 6,
+  },
+  premiumViewCertBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#059669',
+    paddingVertical: 12,
+    borderRadius: RADIUS.md,
+    gap: 8,
+  },
+  premiumViewCertText: {
+    ...TYPOGRAPHY.bodyBold,
+    color: '#FFFFFF',
   },
   unlockedContainer: {
     backgroundColor: '#F8FAFC',
@@ -645,22 +727,23 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: COLORS.surface,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: '#F1F5F9',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.md,
+    paddingVertical: SPACING.lg, // slightly taller
     ...SHADOWS.lg,
   },
   bottomBarPriceLabel: {
-    ...TYPOGRAPHY.micro,
-    color: COLORS.textMuted,
+    ...TYPOGRAPHY.captionBold,
+    color: COLORS.textSecondary,
+    marginBottom: 2,
   },
   bottomBarPrice: {
     ...TYPOGRAPHY.h2,
-    color: COLORS.primary,
+    color: '#0F172A',
   },
 });

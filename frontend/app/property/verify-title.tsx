@@ -15,9 +15,11 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, RADIUS, TYPOGRAPHY, SHADOWS } from '../../src/constants/theme';
 import { useVerification } from '../../src/store/VerificationContext';
+import { useAuth } from '../../src/store/AuthContext';
 import { Button } from '../../src/components/common/Button';
 import { Header } from '../../src/components/common/Header';
 import { CadastralCertificateModal } from '../../src/components/property/CadastralCertificateModal';
+import { useProtectedAction } from '../../src/utils/useProtectedAction';
 
 export default function VerifyTitleScreen() {
   const router = useRouter();
@@ -31,9 +33,26 @@ export default function VerifyTitleScreen() {
     details?: any;
   } | null>(null);
 
+  const { currentUser } = useAuth();
+  const { requireAuth } = useProtectedAction();
+
   const handleVerify = async () => {
     if (!titleInput.trim()) {
       Alert.alert('Required Field', 'Please enter a land title number (e.g. LT-2026-YDE-0482).');
+      return;
+    }
+
+    // Must be logged in to submit
+    if (!requireAuth(() => {})) {
+      return;
+    }
+    
+    // Subscription Intercept
+    if (!currentUser?.isSubscribed) {
+      router.push({
+        pathname: '/payment/[id]',
+        params: { id: 'subscribe', type: 'subscribe', fee: '15000' }
+      });
       return;
     }
 
@@ -226,6 +245,7 @@ export default function VerifyTitleScreen() {
             images: ['https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&auto=format&fit=crop'],
             description: 'Terrain titré vérifié conforme aux registres cadastraux de la république du Cameroun.',
           } as any}
+          isUnlocked={true}
         />
       )}
     </SafeAreaView>

@@ -14,14 +14,33 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, RADIUS, TYPOGRAPHY, SHADOWS } from '../../constants/theme';
 import { useAuth } from '../../store/AuthContext';
 import { useVerification } from '../../store/VerificationContext';
+import { useLanguage } from '../../store/LanguageContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSocket } from '../../store/SocketContext';
 import { StatusBadge } from '../common/StatusBadge';
 import { formatArea } from '../../constants/cameroonData';
 
 export const SurveyorHome: React.FC = () => {
   const router = useRouter();
   const { currentUser } = useAuth();
+  const { language, toggleLanguage, t } = useLanguage();
   const { requests, isLoading, refreshRequests } = useVerification();
   const [activeTab, setActiveTab] = useState<'pending' | 'under_review' | 'completed'>('pending');
+
+  const { socket } = useSocket();
+  React.useEffect(() => {
+    if (!socket) return;
+    
+    const handleUpdate = () => refreshRequests();
+    
+    socket.on('verification_created', handleUpdate);
+    socket.on('verification_updated', handleUpdate);
+
+    return () => {
+      socket.off('verification_created', handleUpdate);
+      socket.off('verification_updated', handleUpdate);
+    };
+  }, [socket, refreshRequests]);
 
   const filteredRequests = requests.filter((r) => {
     if (activeTab === 'pending') {
@@ -36,22 +55,36 @@ export const SurveyorHome: React.FC = () => {
   const pendingCount = requests.filter((r) => r.status === 'submitted').length;
   const reviewCount = requests.filter((r) => r.status === 'under_review').length;
   const completedCount = requests.filter((r) => r.status === 'approved' || r.status === 'rejected').length;
+  const insets = useSafeAreaInsets();
 
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.scrollContent}
+      contentContainerStyle={[
+        styles.scrollContent,
+        { paddingTop: Math.max(insets.top + 10, 40) }
+      ]}
       showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refreshRequests} />}
     >
       {/* Surveyor Top Header */}
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerBadge}>CERTIFIED LAND SURVEYOR</Text>
+          <Text style={styles.headerBadge}>{t('surveyor.badge')}</Text>
           <Text style={styles.headerTitle}>{currentUser?.fullName || 'Ing. Samuel Ewane'}</Text>
-          <Text style={styles.headerSubtitle}>Order of Certified Surveyors of Cameroon</Text>
+          <Text style={styles.headerSubtitle}>{t('surveyor.subtitle')}</Text>
         </View>
         <View style={styles.headerRightActions}>
+          <TouchableOpacity
+            style={styles.langBtn}
+            onPress={toggleLanguage}
+            activeOpacity={0.7}
+          >
+            <Text style={{ fontSize: 14, marginRight: 4 }}>
+              {language === 'EN' ? '🇬🇧' : '🇫🇷'}
+            </Text>
+            <Text style={styles.langBtnText}>{language}</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={styles.notifBtn}
             onPress={() => router.push('/(tabs)/notifications')}
@@ -90,7 +123,7 @@ export const SurveyorHome: React.FC = () => {
           onPress={() => setActiveTab('pending')}
         >
           <Text style={[styles.tabText, activeTab === 'pending' && styles.tabTextActive]}>
-            Pending ({pendingCount})
+            {t('surveyor.tabPending')} ({pendingCount})
           </Text>
         </TouchableOpacity>
 
@@ -99,7 +132,7 @@ export const SurveyorHome: React.FC = () => {
           onPress={() => setActiveTab('under_review')}
         >
           <Text style={[styles.tabText, activeTab === 'under_review' && styles.tabTextActive]}>
-            In Review ({reviewCount})
+            {t('surveyor.tabReview')} ({reviewCount})
           </Text>
         </TouchableOpacity>
 
@@ -108,7 +141,7 @@ export const SurveyorHome: React.FC = () => {
           onPress={() => setActiveTab('completed')}
         >
           <Text style={[styles.tabText, activeTab === 'completed' && styles.tabTextActive]}>
-            Completed ({completedCount})
+            {t('surveyor.tabCompleted')} ({completedCount})
           </Text>
         </TouchableOpacity>
       </View>
@@ -118,8 +151,8 @@ export const SurveyorHome: React.FC = () => {
         {filteredRequests.length === 0 ? (
           <View style={styles.emptyCard}>
             <Ionicons name="documents-outline" size={32} color={COLORS.textMuted} />
-            <Text style={styles.emptyTitle}>No verification requests</Text>
-            <Text style={styles.emptyDesc}>There are currently no requests in this status.</Text>
+            <Text style={styles.emptyTitle}>{t('surveyor.emptyTitle')}</Text>
+            <Text style={styles.emptyDesc}>{t('surveyor.emptyDesc')}</Text>
           </View>
         ) : (
           filteredRequests.map((req) => (
@@ -144,17 +177,17 @@ export const SurveyorHome: React.FC = () => {
 
               <View style={styles.divider} />
 
-              <View style={styles.cardDetailsGrid}>
+                <View style={styles.cardDetailsGrid}>
                 <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Seller</Text>
+                  <Text style={styles.detailLabel}>{t('surveyor.sellerLabel')}</Text>
                   <Text style={styles.detailValue}>{req.sellerName}</Text>
                 </View>
                 <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Surface Area</Text>
+                  <Text style={styles.detailLabel}>{t('surveyor.areaLabel')}</Text>
                   <Text style={styles.detailValue}>{formatArea(req.surfaceAreaSqM)}</Text>
                 </View>
                 <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Submitted</Text>
+                  <Text style={styles.detailLabel}>{t('surveyor.submittedLabel')}</Text>
                   <Text style={styles.detailValue}>
                     {new Date(req.submittedAt).toLocaleDateString('en-GB', {
                       day: 'numeric',
@@ -164,13 +197,13 @@ export const SurveyorHome: React.FC = () => {
                   </Text>
                 </View>
                 <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Est. SLA</Text>
+                  <Text style={styles.detailLabel}>{t('surveyor.slaLabel')}</Text>
                   <Text style={[styles.detailValue, { color: COLORS.secondary }]}>48 Hours</Text>
                 </View>
               </View>
 
               <View style={styles.cardFooter}>
-                <Text style={styles.actionPromptText}>Inspect Deed Scans & Audit Title</Text>
+                <Text style={styles.actionPromptText}>{t('surveyor.inspectBtn')}</Text>
                 <Ionicons name="arrow-forward" size={16} color={COLORS.secondary} />
               </View>
             </TouchableOpacity>
@@ -188,7 +221,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: SPACING.lg,
-    paddingTop: 54, // Clear demo switcher
     paddingBottom: SPACING.xxxl,
   },
   header: {
@@ -216,6 +248,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm + 2,
+  },
+  langBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: RADIUS.round,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  langBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.primary,
   },
   notifBtn: {
     width: 40,

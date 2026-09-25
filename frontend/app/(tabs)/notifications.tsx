@@ -8,18 +8,20 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, RADIUS, TYPOGRAPHY, SHADOWS } from '../../src/constants/theme';
 import { useNotifications } from '../../src/store/NotificationContext';
 import { EmptyState } from '../../src/components/common/EmptyState';
+import { useLanguage } from '../../src/store/LanguageContext';
 import { AppNotification } from '../../src/types';
 
 export default function NotificationsScreen() {
   const router = useRouter();
   const { notifications, unreadCount, isLoading, refreshNotifications, markAsRead, markAllAsRead } =
     useNotifications();
+  const { t } = useLanguage();
 
   const getIconConfig = (type: AppNotification['type']) => {
     switch (type) {
@@ -52,21 +54,22 @@ export default function NotificationsScreen() {
     }
   };
 
+  const insets = useSafeAreaInsets();
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <View style={[styles.safeArea, { paddingTop: Math.max(insets.top + 10, 40) }]}>
       <View style={styles.container}>
         {/* Top Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.title}>Notification Center</Text>
+            <Text style={styles.title}>{t('notif.center')}</Text>
             <Text style={styles.subtitle}>
-              {unreadCount > 0 ? `${unreadCount} unread updates` : 'All updates are read'}
+              {unreadCount > 0 ? `${unreadCount} ${t('notif.unreadUpdates')}` : t('notif.allRead')}
             </Text>
           </View>
 
           {unreadCount > 0 && (
             <TouchableOpacity style={styles.markAllBtn} onPress={() => markAllAsRead()}>
-              <Text style={styles.markAllText}>Mark all read</Text>
+              <Text style={styles.markAllText}>{t('notif.markAllRead')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -80,8 +83,8 @@ export default function NotificationsScreen() {
         {notifications.length === 0 ? (
           <EmptyState
             icon="notifications-off-outline"
-            title="No Notifications"
-            description="You will receive real-time updates regarding your land verification requests, appointments, and payments here."
+            title={t('notif.emptyTitle')}
+            description={t('notif.emptyDesc')}
           />
         ) : (
           notifications.map((notif) => {
@@ -121,7 +124,7 @@ export default function NotificationsScreen() {
         )}
       </ScrollView>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

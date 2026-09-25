@@ -11,9 +11,12 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, SPACING, RADIUS, TYPOGRAPHY, SHADOWS } from '../../constants/theme';
 import { useAuth } from '../../store/AuthContext';
 import { useLand } from '../../store/LandContext';
+import { useLanguage } from '../../store/LanguageContext';
+import { useSocket } from '../../store/SocketContext';
 import { StatusBadge } from '../common/StatusBadge';
 import { Button } from '../common/Button';
 import { formatFCFA, formatArea } from '../../constants/cameroonData';
@@ -22,6 +25,21 @@ export const SellerHome: React.FC = () => {
   const router = useRouter();
   const { currentUser } = useAuth();
   const { sellerListings, isLoading, refreshLands } = useLand();
+  const { language, toggleLanguage, t } = useLanguage();
+  const insets = useSafeAreaInsets();
+
+  const { socket } = useSocket();
+  React.useEffect(() => {
+    if (!socket) return;
+    
+    const handleUpdate = () => refreshLands();
+    
+    socket.on('verification_updated', handleUpdate);
+
+    return () => {
+      socket.off('verification_updated', handleUpdate);
+    };
+  }, [socket, refreshLands]);
 
   // Metrics calculation
   const totalListings = sellerListings.length;
@@ -32,7 +50,10 @@ export const SellerHome: React.FC = () => {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.scrollContent}
+      contentContainerStyle={[
+        styles.scrollContent, 
+        { paddingTop: Math.max(insets.top + 10, 40) }
+      ]}
       showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refreshLands} />}
     >
@@ -45,10 +66,20 @@ export const SellerHome: React.FC = () => {
               TerraVerify
             </Text>
           </View>
-          <Text style={styles.headerSubtitle}>Seller Control Center</Text>
+          <Text style={styles.headerSubtitle}>{t('seller.subtitle')}</Text>
           <Text style={styles.headerTitle}>{currentUser?.fullName || 'Paul Njoya'}</Text>
         </View>
         <View style={styles.headerRightActions}>
+          <TouchableOpacity
+            style={styles.langBtn}
+            onPress={toggleLanguage}
+            activeOpacity={0.7}
+          >
+            <Text style={{ fontSize: 14, marginRight: 4 }}>
+              {language === 'EN' ? '🇬🇧' : '🇫🇷'}
+            </Text>
+            <Text style={styles.langBtnText}>{language}</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={styles.notifBtn}
             onPress={() => router.push('/(tabs)/notifications')}
@@ -75,12 +106,12 @@ export const SellerHome: React.FC = () => {
       {/* Primary CTA: Submit a Land */}
       <View style={styles.ctaCard}>
         <View style={styles.ctaTextCol}>
-          <Text style={styles.ctaTitle}>Have a parcel to sell?</Text>
+          <Text style={styles.ctaTitle}>{t('seller.ctaTitle')}</Text>
           <Text style={styles.ctaDesc}>
-            Submit your land title number and survey plans for 48-hour manual verification by a certified surveyor.
+            {t('seller.ctaDesc')}
           </Text>
           <Button
-            title="Submit a Land"
+            title={t('seller.ctaBtn')}
             onPress={() => router.push('/seller/submit')}
             variant="secondary"
             size="md"
@@ -94,29 +125,29 @@ export const SellerHome: React.FC = () => {
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
           <Text style={styles.statNumber}>{totalListings}</Text>
-          <Text style={styles.statLabel}>My Listings</Text>
+          <Text style={styles.statLabel}>{t('seller.statListings')}</Text>
         </View>
 
         <View style={styles.statCard}>
           <Text style={[styles.statNumber, { color: COLORS.warning }]}>{pendingCount}</Text>
-          <Text style={styles.statLabel}>Pending (48h)</Text>
+          <Text style={styles.statLabel}>{t('seller.statPending')}</Text>
         </View>
 
         <View style={styles.statCard}>
           <Text style={[styles.statNumber, { color: COLORS.success }]}>{verifiedCount}</Text>
-          <Text style={styles.statLabel}>Verified</Text>
+          <Text style={styles.statLabel}>{t('seller.statVerified')}</Text>
         </View>
 
         <View style={styles.statCard}>
           <Text style={[styles.statNumber, { color: COLORS.error }]}>{rejectedCount}</Text>
-          <Text style={styles.statLabel}>Rejected</Text>
+          <Text style={styles.statLabel}>{t('seller.statRejected')}</Text>
         </View>
       </View>
 
       {/* My Listings Section */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>My Property Dossiers</Text>
-        <Text style={styles.sectionCount}>{totalListings} total</Text>
+        <Text style={styles.sectionTitle}>{t('seller.sectionTitle')}</Text>
+        <Text style={styles.sectionCount}>{totalListings} {t('seller.total')}</Text>
       </View>
 
       {sellerListings.map((listing) => {
@@ -165,7 +196,7 @@ export const SellerHome: React.FC = () => {
               <View style={styles.pendingBar}>
                 <Ionicons name="time-outline" size={14} color={COLORS.warning} />
                 <Text style={styles.pendingBarText}>
-                  Under manual cadastral check (Est. within 48h)
+                  {t('seller.pendingBar')}
                 </Text>
                 <Ionicons name="chevron-forward" size={14} color={COLORS.warning} />
               </View>
@@ -175,7 +206,7 @@ export const SellerHome: React.FC = () => {
               <View style={styles.rejectedBar}>
                 <Ionicons name="alert-circle-outline" size={14} color={COLORS.error} />
                 <Text style={styles.rejectedBarText} numberOfLines={1}>
-                  Reason: {listing.rejectionReason || 'Boundary overlap noted'}
+                  {t('seller.rejectedReason')}{listing.rejectionReason || 'Boundary overlap noted'}
                 </Text>
               </View>
             )}
@@ -184,7 +215,7 @@ export const SellerHome: React.FC = () => {
               <View style={styles.verifiedBar}>
                 <Ionicons name="checkmark-circle-outline" size={14} color={COLORS.success} />
                 <Text style={styles.verifiedBarText}>
-                  Published for sale • Authenticated by Surveyor
+                  {t('seller.verifiedBar')}
                 </Text>
               </View>
             )}
@@ -202,7 +233,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: SPACING.lg,
-    paddingTop: 54, // Clear demo switcher
     paddingBottom: SPACING.xxxl,
   },
   header: {
@@ -223,6 +253,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm + 2,
+  },
+  langBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: RADIUS.round,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  langBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.primary,
   },
   notifBtn: {
     width: 40,

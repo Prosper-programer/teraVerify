@@ -1,7 +1,9 @@
 // TerraVerify Backend Server Entry Point
 require('dotenv').config();
+const http = require('http');
 const app = require('./src/app');
 const { checkConnection } = require('./src/config/db');
+const { initIO } = require('./src/config/socket');
 
 const PORT = process.env.PORT || 5001;
 
@@ -15,8 +17,12 @@ async function bootstrap() {
     console.log(`[Database Connected] MySQL database "${dbStatus.database}" is ready.`);
   }
 
-  const server = app.listen(PORT, () => {
+  const httpServer = http.createServer(app);
+  initIO(httpServer); // Initialize Socket.IO with the HTTP server
+
+  const server = httpServer.listen(PORT, () => {
     console.log(`TerraVerify API Server running on port ${PORT} [Mode: ${process.env.NODE_ENV || 'development'}]`);
+    console.log(`Socket.IO Server initialized.`);
   });
 
   server.on('error', (err) => {

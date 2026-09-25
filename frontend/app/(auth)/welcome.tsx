@@ -15,10 +15,8 @@ import { useAuth } from '../../src/store/AuthContext';
 
 export default function WelcomeScreen() {
   const router = useRouter();
-  const { switchDemoRole } = useAuth();
-
-  const handleGuest = async () => {
-    await switchDemoRole('visitor');
+  
+  const handleGuest = () => {
     router.replace('/(tabs)');
   };
 

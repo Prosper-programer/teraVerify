@@ -1,4 +1,4 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 // Land Discovery & Multi-Filter Explorer Screen
 import React, { useState } from 'react';
 import {
@@ -19,14 +19,19 @@ import { Button } from '../../src/components/common/Button';
 import { EmptyState } from '../../src/components/common/EmptyState';
 import { CAMEROON_REGIONS, LAND_TYPES } from '../../src/constants/cameroonData';
 import { CadastralMapView } from '../../src/components/property/CadastralMapView';
+import { useLanguage } from '../../src/store/LanguageContext';
+import { useProtectedAction } from '../../src/utils/useProtectedAction';
 
 export default function ExploreScreen() {
   const router = useRouter();
   const { lands, filters, setFilters, savedLandIds, toggleSaveLand } = useLand();
+  const { language, toggleLanguage, t } = useLanguage();
+  const { requireAuth } = useProtectedAction();
 
   const [searchQuery, setSearchQuery] = useState(filters.searchQuery || '');
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  const [showSavedOnly, setShowSavedOnly] = useState(false);
 
   // Filter state
   const [selectedRegion, setSelectedRegion] = useState<string>(filters.region || 'all');
@@ -69,15 +74,29 @@ export default function ExploreScreen() {
     setFilters((prev) => ({ ...prev, searchQuery }));
   };
 
+  const displayedLands = showSavedOnly ? lands.filter(l => savedLandIds.includes(l.id)) : lands;
+
+  const insets = useSafeAreaInsets();
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={[styles.container, { paddingTop: Math.max(insets.top + SPACING.sm, 40) }]}>
       {/* Header Search & Filter Bar */}
       <View style={styles.topBar}>
+        <TouchableOpacity
+          style={styles.langBtn}
+          onPress={toggleLanguage}
+          activeOpacity={0.7}
+        >
+          <Text style={{ fontSize: 14, marginRight: 4 }}>
+            {language === 'EN' ? '🇬🇧' : '🇫🇷'}
+          </Text>
+          <Text style={styles.langBtnText}>{language}</Text>
+        </TouchableOpacity>
+
         <View style={styles.searchBox}>
           <Ionicons name="search-outline" size={18} color={COLORS.textMuted} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search city, neighborhood or title..."
+            placeholder={t('explore.searchPlaceholder')}
             placeholderTextColor={COLORS.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -110,9 +129,21 @@ export default function ExploreScreen() {
 
       {/* Results Header with List / Map View Switcher */}
       <View style={styles.resultsInfoRow}>
-        <Text style={styles.resultsCountText}>
-          {lands.length} {lands.length === 1 ? 'plot' : 'plots'} found
-        </Text>
+        {/* Tabs for All vs Saved Lands */}
+        <View style={styles.tabRow}>
+          <TouchableOpacity
+            style={[styles.tabBtn, !showSavedOnly && styles.tabBtnActive]}
+            onPress={() => setShowSavedOnly(false)}
+          >
+            <Text style={[styles.tabText, !showSavedOnly && styles.tabTextActive]}>All</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabBtn, showSavedOnly && styles.tabBtnActive]}
+            onPress={() => setShowSavedOnly(true)}
+          >
+            <Text style={[styles.tabText, showSavedOnly && styles.tabTextActive]}>Favorites</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* View Switcher: List vs Cadastre Map */}
         <View style={styles.viewToggleGroup}>
@@ -128,7 +159,7 @@ export default function ExploreScreen() {
               style={{ marginRight: 3 }}
             />
             <Text style={[styles.viewToggleText, viewMode === 'list' && styles.viewToggleTextActive]}>
-              List
+              {t('explore.list')}
             </Text>
           </TouchableOpacity>
 
@@ -144,7 +175,7 @@ export default function ExploreScreen() {
               style={{ marginRight: 3 }}
             />
             <Text style={[styles.viewToggleText, viewMode === 'map' && styles.viewToggleTextActive]}>
-              Map
+              {t('explore.map')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -152,26 +183,26 @@ export default function ExploreScreen() {
 
       {/* Conditional View: List or Cadastral Map */}
       {viewMode === 'map' ? (
-        <CadastralMapView lands={lands} />
+        <CadastralMapView lands={displayedLands} />
       ) : (
         <ScrollView
           contentContainerStyle={styles.scrollList}
           showsVerticalScrollIndicator={false}
         >
-          {lands.length === 0 ? (
+          {displayedLands.length === 0 ? (
             <EmptyState
-              icon="search-outline"
-              title="No Matching Lands Found"
-              description="Try adjusting your location or price criteria to find available properties."
-              actionTitle="Reset All Filters"
-              onAction={handleResetFilters}
+              icon={showSavedOnly ? "heart-dislike-outline" : "search-outline"}
+              title={showSavedOnly ? "No Favorites Yet" : t('explore.noLands')}
+              description={showSavedOnly ? "You haven't saved any lands to your favorites." : t('explore.noLandsDesc')}
+              actionTitle={showSavedOnly ? "Explore Lands" : t('explore.resetFilters')}
+              onAction={() => showSavedOnly ? setShowSavedOnly(false) : handleResetFilters()}
             />
           ) : (
-            lands.map((land) => (
+            displayedLands.map((land) => (
               <PropertyCard
                 key={land.id}
                 land={land}
-                onPress={() => router.push(`/property/${land.id}`)}
+                onPress={() => requireAuth(() => router.push(`/property/${land.id}`))}
                 isSaved={savedLandIds.includes(land.id)}
                 onToggleSave={() => toggleSaveLand(land.id)}
               />
@@ -189,7 +220,7 @@ export default function ExploreScreen() {
       >
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Filter Land Listings</Text>
+            <Text style={styles.modalTitle}>{t('explore.filterTitle')}</Text>
             <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
               <Ionicons name="close" size={24} color={COLORS.textPrimary} />
             </TouchableOpacity>
@@ -198,7 +229,7 @@ export default function ExploreScreen() {
           <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
             {/* Verification Status Filter */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Verification Status</Text>
+              <Text style={styles.filterSectionTitle}>{t('explore.verifyStatus')}</Text>
               <TouchableOpacity
                 style={[styles.checkboxRow, onlyVerified && styles.checkboxRowActive]}
                 onPress={() => setOnlyVerified(!onlyVerified)}
@@ -208,20 +239,20 @@ export default function ExploreScreen() {
                   size={20}
                   color={onlyVerified ? COLORS.secondary : COLORS.textMuted}
                 />
-                <Text style={styles.checkboxLabel}>Show Verified Lands Only (Surveyor Audited)</Text>
+                <Text style={styles.checkboxLabel}>{t('explore.showVerified')}</Text>
               </TouchableOpacity>
             </View>
 
             {/* Region Filter */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Cameroon Region</Text>
+              <Text style={styles.filterSectionTitle}>{t('explore.region')}</Text>
               <View style={styles.chipsWrap}>
                 <TouchableOpacity
                   style={[styles.filterChip, selectedRegion === 'all' && styles.filterChipSelected]}
                   onPress={() => setSelectedRegion('all')}
                 >
                   <Text style={[styles.filterChipText, selectedRegion === 'all' && styles.filterChipTextSelected]}>
-                    All Regions
+                    {t('explore.allRegions')}
                   </Text>
                 </TouchableOpacity>
                 {CAMEROON_REGIONS.map((r) => (
@@ -240,24 +271,24 @@ export default function ExploreScreen() {
 
             {/* Land Usage Type */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Property Usage</Text>
+              <Text style={styles.filterSectionTitle}>{t('explore.usage')}</Text>
               <View style={styles.chipsWrap}>
                 <TouchableOpacity
                   style={[styles.filterChip, selectedType === 'all' && styles.filterChipSelected]}
                   onPress={() => setSelectedType('all')}
                 >
                   <Text style={[styles.filterChipText, selectedType === 'all' && styles.filterChipTextSelected]}>
-                    All Types
+                    {t('explore.allTypes')}
                   </Text>
                 </TouchableOpacity>
-                {LAND_TYPES.map((t) => (
+                {LAND_TYPES.map((tItem) => (
                   <TouchableOpacity
-                    key={t.value}
-                    style={[styles.filterChip, selectedType === t.value && styles.filterChipSelected]}
-                    onPress={() => setSelectedType(t.value)}
+                    key={tItem.value}
+                    style={[styles.filterChip, selectedType === tItem.value && styles.filterChipSelected]}
+                    onPress={() => setSelectedType(tItem.value)}
                   >
-                    <Text style={[styles.filterChipText, selectedType === t.value && styles.filterChipTextSelected]}>
-                      {t.label}
+                    <Text style={[styles.filterChipText, selectedType === tItem.value && styles.filterChipTextSelected]}>
+                      {tItem.label}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -266,7 +297,7 @@ export default function ExploreScreen() {
 
             {/* Price Cap Presets */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Maximum Price (FCFA)</Text>
+              <Text style={styles.filterSectionTitle}>{t('explore.maxPrice')}</Text>
               <View style={styles.chipsWrap}>
                 {[20000000, 50000000, 100000000].map((cap) => (
                   <TouchableOpacity
@@ -275,7 +306,7 @@ export default function ExploreScreen() {
                     onPress={() => setMaxPrice(maxPrice === cap ? undefined : cap)}
                   >
                     <Text style={[styles.filterChipText, maxPrice === cap && styles.filterChipTextSelected]}>
-                      ≤ {(cap / 1000000).toFixed(0)} Million FCFA
+                      ≤ {(cap / 1000000).toFixed(0)} {t('explore.millionFCFA')}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -284,7 +315,7 @@ export default function ExploreScreen() {
 
             {/* Minimum Area Presets */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Minimum Surface Area</Text>
+              <Text style={styles.filterSectionTitle}>{t('explore.minArea')}</Text>
               <View style={styles.chipsWrap}>
                 {[500, 1000, 2000].map((sqm) => (
                   <TouchableOpacity
@@ -304,14 +335,14 @@ export default function ExploreScreen() {
           {/* Modal Footer */}
           <View style={styles.modalFooter}>
             <Button
-              title="Reset"
+              title={t('explore.reset')}
               onPress={handleResetFilters}
               variant="outline"
               size="md"
               style={{ flex: 1 }}
             />
             <Button
-              title="Apply Filters"
+              title={t('explore.applyFilters')}
               onPress={handleApplyFilters}
               variant="primary"
               size="md"
@@ -320,7 +351,7 @@ export default function ExploreScreen() {
           </View>
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -347,6 +378,21 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     paddingHorizontal: SPACING.md,
     height: 44,
+  },
+  langBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 10,
+    height: 44,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  langBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.primary,
   },
   searchIcon: {
     marginRight: SPACING.xs,
@@ -399,6 +445,30 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.captionMedium,
     color: COLORS.textSecondary,
     fontWeight: '700',
+  },
+  tabRow: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+  },
+  tabBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: RADIUS.round,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  tabBtnActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+  tabTextActive: {
+    color: '#FFFFFF',
   },
   viewToggleGroup: {
     flexDirection: 'row',

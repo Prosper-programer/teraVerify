@@ -5,11 +5,13 @@ import { Platform, BackHandler, View, Text } from 'react-native';
 import { COLORS, TYPOGRAPHY } from '../../src/constants/theme';
 import { useNotifications } from '../../src/store/NotificationContext';
 import { useAuth } from '../../src/store/AuthContext';
+import { useLanguage } from '../../src/store/LanguageContext';
 
 export default function TabsLayout() {
   const router = useRouter();
   const { unreadCount } = useNotifications();
   const { role } = useAuth();
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (Platform.OS !== 'android') return;
@@ -37,7 +39,7 @@ export default function TabsLayout() {
       case 'buyer':
       case 'visitor':
       default:
-        return 'Home';
+        return t('tabs.home');
     }
   };
 
@@ -122,7 +124,7 @@ export default function TabsLayout() {
                 marginTop: 2,
               }}
             >
-              Explore
+              {t('tabs.explore')}
             </Text>
           ),
           tabBarIcon: ({ focused }) => (
@@ -158,7 +160,7 @@ export default function TabsLayout() {
                 marginTop: 2,
               }}
             >
-              Advisors
+              {t('tabs.advisors')}
             </Text>
           ),
           tabBarIcon: ({ focused }) => (
@@ -194,7 +196,7 @@ export default function TabsLayout() {
                 marginTop: 2,
               }}
             >
-              Alerts
+              {t('tabs.alerts')}
             </Text>
           ),
           tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
@@ -241,7 +243,7 @@ export default function TabsLayout() {
                 marginTop: 2,
               }}
             >
-              Account
+              {t('tabs.account')}
             </Text>
           ),
           tabBarIcon: ({ focused }) => (

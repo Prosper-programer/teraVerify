@@ -39,9 +39,9 @@ export default function TabHomeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <View style={styles.safeArea}>
       {renderDashboard()}
-    </SafeAreaView>
+    </View>
   );
 }
 
