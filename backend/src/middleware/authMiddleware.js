@@ -51,7 +51,26 @@ function requireRole(...allowedRoles) {
   };
 }
 
+async function optionalAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return next();
+  }
+  const token = authHeader.replace(/^Bearer\s+/i, '');
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [decoded.id]);
+    if (rows.length > 0 && rows[0].status !== 'suspended') {
+      req.user = rows[0];
+    }
+  } catch (err) {
+    // Ignore invalid tokens for optional auth
+  }
+  next();
+}
+
 module.exports = {
   requireAuth,
   requireRole,
+  optionalAuth,
 };
