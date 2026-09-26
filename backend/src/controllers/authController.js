@@ -26,7 +26,10 @@ async function login(req, res) {
 
     const cleanIdentifier = identifier.trim();
     const phoneDigits = cleanIdentifier.replace(/\D/g, "");
-    const phoneCandidates = [phoneDigits];
+    
+    // Only use phone candidates if there are actual digits
+    const phoneCandidates = phoneDigits.length > 0 ? [phoneDigits] : ["_IMPOSSIBLE_PHONE_"];
+    
     if (phoneDigits.startsWith("237") && phoneDigits.length === 12) {
       phoneCandidates.push(`0${phoneDigits.slice(3)}`);
     } else if (phoneDigits.startsWith("0") && phoneDigits.length === 10) {
