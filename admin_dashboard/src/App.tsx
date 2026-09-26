@@ -26,9 +26,11 @@ import {
   ArrowLeft,
   Building,
   User as UserIcon,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
-const API_URL = "http://localhost:5001/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
 
 const api = axios.create({ baseURL: API_URL });
 api.interceptors.request.use((config) => {
@@ -91,8 +93,9 @@ const formatDate = (dateString?: string) => {
 };
 
 function Login() {
-  const [email, setEmail] = useState("admin@terraverify.cm");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
@@ -119,9 +122,17 @@ function Login() {
 
   return (
     <div className="min-h-screen flex bg-slate-50 font-sans">
-      {/* Left side branding */}
-      <div className="hidden lg:flex w-1/2 bg-slate-900 text-white p-12 flex-col justify-between relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-400 via-slate-900 to-slate-900"></div>
+      {/* Left side branding with Image */}
+      <div className="hidden lg:flex w-1/2 relative flex-col justify-between p-12 overflow-hidden text-white">
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center z-0"
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')" }}
+        />
+        {/* Dark overlay for readability */}
+        <div className="absolute inset-0 bg-slate-900/80 mix-blend-multiply z-0"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-900/40 via-slate-900/80 to-slate-900 z-0"></div>
+        
         <div className="relative z-10">
           <div className="flex items-center gap-3 text-blue-400 mb-8">
             <ShieldCheck size={32} />
@@ -131,11 +142,11 @@ function Login() {
             Unified <br />
             <span className="font-semibold text-blue-400">Staff Portal</span>
           </h1>
-          <p className="text-slate-400 mt-6 max-w-md text-lg">
+          <p className="text-slate-300 mt-6 max-w-md text-lg">
             Secure administration and verification interface for TerraVerify operations.
           </p>
         </div>
-        <div className="relative z-10 text-sm text-slate-500">
+        <div className="relative z-10 text-sm text-slate-400 font-medium">
           &copy; {new Date().getFullYear()} TerraVerify. All rights reserved.
         </div>
       </div>
@@ -176,13 +187,22 @@ function Login() {
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Password
                 </label>
-                <input
-                  className="w-full bg-white border border-slate-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-slate-900"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+                <div className="relative">
+                  <input
+                    className="w-full bg-white border border-slate-300 p-3 pr-12 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-slate-900"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
               </div>
               
               <div className="pt-2">
@@ -191,6 +211,20 @@ function Login() {
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg font-medium transition-colors shadow-sm"
                 >
                   Sign In
+                </button>
+              </div>
+
+              {/* Dev Only Quick Login */}
+              <div className="text-center mt-4">
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setEmail("admin@terraverify.cm");
+                    setPassword("admin123");
+                  }}
+                  className="text-xs text-slate-400 hover:text-blue-600 underline underline-offset-2 transition-colors"
+                >
+                  Quick Fill: Admin Credentials
                 </button>
               </div>
             </form>
@@ -297,6 +331,12 @@ function Dashboard() {
   const [search, setSearch] = useState("");
   const [surveyorTab, setSurveyorTab] = useState<"pending" | "completed">("pending");
 
+  // Create User State
+  const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
+  const [newUserData, setNewUserData] = useState({ fullName: '', email: '', phone: '', password: '', role: 'surveyor' });
+  const [createUserLoading, setCreateUserLoading] = useState(false);
+  const [showTempPassword, setShowTempPassword] = useState(false);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -327,6 +367,22 @@ function Dashboard() {
   };
 
   // Admin Actions
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateUserLoading(true);
+    try {
+      await axios.post(`${API_URL}/auth/register`, newUserData);
+      alert("User created successfully!");
+      setIsCreateUserOpen(false);
+      setNewUserData({ fullName: '', email: '', phone: '', password: '', role: 'surveyor' });
+      fetchData();
+    } catch (err: any) {
+      alert(err.response?.data?.error || "Failed to create user.");
+    } finally {
+      setCreateUserLoading(false);
+    }
+  };
+
   const toggleUser = async (id: string) => {
     if (!confirm("Toggle user access status?")) return;
     await api.put(`/users/${id}/toggle-status`);
@@ -585,7 +641,7 @@ function Dashboard() {
 
               {activeTab === "users" && (
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="p-5 border-b border-slate-200 flex items-center bg-slate-50/50">
+                  <div className="p-5 border-b border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-50/50">
                     <div className="relative w-full sm:w-72">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                       <input
@@ -596,7 +652,68 @@ function Dashboard() {
                         onChange={(e) => setSearch(e.target.value)}
                       />
                     </div>
+                    <button
+                      onClick={() => setIsCreateUserOpen(true)}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm whitespace-nowrap"
+                    >
+                      + Add Member
+                    </button>
                   </div>
+
+                  {/* Create User Modal Inline */}
+                  {isCreateUserOpen && (
+                    <div className="p-6 border-b border-slate-200 bg-blue-50/30">
+                      <div className="max-w-2xl">
+                        <h3 className="text-lg font-bold text-slate-800 mb-4">Create New Account</h3>
+                        <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Full Name</label>
+                            <input required type="text" className="w-full p-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 outline-none" value={newUserData.fullName} onChange={e => setNewUserData({...newUserData, fullName: e.target.value})} />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Email</label>
+                            <input required type="email" className="w-full p-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 outline-none" value={newUserData.email} onChange={e => setNewUserData({...newUserData, email: e.target.value})} />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Phone (e.g. 237...)</label>
+                            <input required type="text" className="w-full p-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 outline-none" value={newUserData.phone} onChange={e => setNewUserData({...newUserData, phone: e.target.value})} />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Temporary Password</label>
+                            <div className="relative">
+                              <input required minLength={6} type={showTempPassword ? "text" : "password"} className="w-full p-2.5 pr-10 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 outline-none" value={newUserData.password} onChange={e => setNewUserData({...newUserData, password: e.target.value})} />
+                              <button
+                                type="button"
+                                onClick={() => setShowTempPassword(!showTempPassword)}
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                              >
+                                {showTempPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                              </button>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Role</label>
+                            <select className="w-full p-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 outline-none" value={newUserData.role} onChange={e => setNewUserData({...newUserData, role: e.target.value})}>
+                              <option value="surveyor">Surveyor</option>
+                              <option value="admin">Administrator</option>
+                              <option value="buyer">Buyer</option>
+                              <option value="seller">Seller</option>
+                              <option value="advisor">Advisor</option>
+                            </select>
+                          </div>
+                          <div className="md:col-span-2 flex justify-end gap-3 mt-2">
+                            <button type="button" onClick={() => setIsCreateUserOpen(false)} className="px-4 py-2 text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg text-sm font-semibold transition-colors">
+                              Cancel
+                            </button>
+                            <button disabled={createUserLoading} type="submit" className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm disabled:opacity-50">
+                              {createUserLoading ? "Creating..." : "Save Account"}
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm border-collapse">
                       <thead className="bg-slate-50 border-b border-slate-200 text-slate-500">

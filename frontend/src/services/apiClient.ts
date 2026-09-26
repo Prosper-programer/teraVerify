@@ -6,7 +6,7 @@ import { storageService } from "./storageService";
 const DEFAULT_API_URL =
   Platform.OS === "web"
     ? "http://localhost:5001/api"
-    : "http://192.168.1.188:5001/api";
+    : "http://10.84.95.53:5001/api";
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || DEFAULT_API_URL;
 

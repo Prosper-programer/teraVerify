@@ -8,7 +8,7 @@ const SOCKET_URL =
     ? process.env.EXPO_PUBLIC_API_URL.replace(/\/api$/, '')
     : Platform.OS === 'web'
     ? 'http://localhost:5001'
-    : 'http://192.168.1.188:5001';
+    : 'http://10.84.95.53:5001';
 
 interface SocketContextData {
   socket: Socket | null;
